@@ -8,6 +8,7 @@ use crate::domain::{
     crypto::ports::HasherRepository,
     health::ports::HealthCheckRepository,
     jwt::ports::{KeyStoreRepository, RefreshTokenRepository},
+    prompt::ports::PromptRepository,
     realm::ports::RealmRepository,
     role::ports::RoleRepository,
     seawatch::SecurityEventRepository,
@@ -31,8 +32,8 @@ use crate::domain::{
 
 pub mod user_role_service;
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE> UserService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> UserService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -50,6 +51,7 @@ where
     RT: RefreshTokenRepository,
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
+    PR: PromptRepository,
 {
     async fn delete_user(
         &self,

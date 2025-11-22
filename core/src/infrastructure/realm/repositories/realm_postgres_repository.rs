@@ -125,7 +125,6 @@ impl RealmRepository for PostgresRealmRepository {
             user_registration_enabled: Set(realm_setting.user_registration_enabled),
             forgot_password_enabled: Set(realm_setting.forgot_password_enabled),
             remember_me_enabled: Set(realm_setting.remember_me_enabled),
-            ..Default::default()
         };
 
         let model: RealmSetting = active_model

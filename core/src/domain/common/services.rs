@@ -25,6 +25,7 @@ use crate::domain::{
         entities::{ClaimsTyp, Jwt, JwtClaim},
         ports::{KeyStoreRepository, RefreshTokenRepository},
     },
+    prompt::ports::PromptRepository,
     realm::ports::RealmRepository,
     role::{
         entities::permission::Permissions, ports::RoleRepository, value_objects::CreateRoleRequest,
@@ -39,7 +40,7 @@ use crate::domain::{
 };
 
 #[derive(Clone)]
-pub struct Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
+pub struct Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -57,6 +58,7 @@ where
     RT: RefreshTokenRepository,
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
+    PR: PromptRepository,
 {
     pub(crate) realm_repository: Arc<R>,
     pub(crate) client_repository: Arc<C>,
@@ -74,12 +76,13 @@ where
     pub(crate) refresh_token_repository: Arc<RT>,
     pub(crate) recovery_code_repository: Arc<RC>,
     pub(crate) security_event_repository: Arc<SE>,
+    pub(crate) prompt_repository: Arc<PR>,
 
     pub(crate) policy: FerriskeyPolicy<U, C, UR>,
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
-    Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+    Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -97,6 +100,7 @@ where
     RT: RefreshTokenRepository,
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
+    PR: PromptRepository,
 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -116,6 +120,7 @@ where
         refresh_token_repository: RT,
         recovery_code_repository: RC,
         security_event_repository: SE,
+        prompt_repository: PR,
     ) -> Self {
         let user_repo_arc = Arc::new(user_repository);
         let client_repo_arc = Arc::new(client_repository);
@@ -144,7 +149,7 @@ where
             refresh_token_repository: Arc::new(refresh_token_repository),
             recovery_code_repository: Arc::new(recovery_code_repository),
             security_event_repository: Arc::new(security_event_repository),
-
+            prompt_repository: Arc::new(prompt_repository),
             policy,
         }
     }
@@ -297,8 +302,8 @@ where
     }
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE> CoreService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> CoreService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -316,6 +321,7 @@ where
     RT: RefreshTokenRepository,
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
+    PR: PromptRepository,
 {
     async fn initialize_application(
         &self,
@@ -614,6 +620,7 @@ pub mod tests {
         crypto::ports::MockHasherRepository,
         health::ports::MockHealthCheckRepository,
         jwt::ports::{MockKeyStoreRepository, MockRefreshTokenRepository},
+        prompt::ports::MockPromptRepository,
         realm::{entities::Realm, ports::MockRealmRepository},
         role::{
             entities::{Role, permission::Permissions},
@@ -645,6 +652,7 @@ pub mod tests {
         MockRefreshTokenRepository,
         MockRecoveryCodeRepository,
         MockSecurityEventRepository,
+        MockPromptRepository,
     >;
 
     /// Macros pour créer des mocks async avec clonage automatique
@@ -710,6 +718,7 @@ pub mod tests {
         refresh_token_repo: MockRefreshTokenRepository,
         recovery_code_repo: MockRecoveryCodeRepository,
         security_event_repo: MockSecurityEventRepository,
+        prompt_repo: MockPromptRepository,
     }
 
     impl Default for ServiceTestBuilder {
@@ -737,6 +746,7 @@ pub mod tests {
                 refresh_token_repo: MockRefreshTokenRepository::new(),
                 recovery_code_repo: MockRecoveryCodeRepository::new(),
                 security_event_repo: MockSecurityEventRepository::new(),
+                prompt_repo: MockPromptRepository::new(),
             }
         }
 
@@ -1187,6 +1197,7 @@ pub mod tests {
                 self.refresh_token_repo,
                 self.recovery_code_repo,
                 self.security_event_repo,
+                self.prompt_repo,
             )
         }
     }

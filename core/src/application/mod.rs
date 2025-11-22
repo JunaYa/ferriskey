@@ -7,6 +7,7 @@ use crate::{
         },
         db::postgres::{Postgres, PostgresConfig},
         health::repositories::PostgresHealthCheckRepository,
+        prompt::repositories::prompt_repository::PostgresPromptRepository,
         realm::repositories::realm_postgres_repository::PostgresRealmRepository,
         repositories::{
             argon2_hasher::Argon2HasherRepository,
@@ -46,6 +47,7 @@ pub type FerrisKeyService = Service<
     PostgresRefreshTokenRepository,
     RandBytesRecoveryCodeRepository<10, Argon2HasherRepository>,
     PostgresSecurityEventRepository,
+    PostgresPromptRepository,
 >;
 
 pub async fn create_service(config: FerriskeyConfig) -> Result<FerrisKeyService, CoreError> {
@@ -78,6 +80,7 @@ pub async fn create_service(config: FerriskeyConfig) -> Result<FerrisKeyService,
     let refresh_token = PostgresRefreshTokenRepository::new(postgres.get_db());
     let recovery_code = RandBytesRecoveryCodeRepository::new(hasher.clone());
     let security_event = PostgresSecurityEventRepository::new(postgres.get_db());
+    let prompt = PostgresPromptRepository::new(postgres.get_db());
 
     Ok(Service::new(
         realm,
@@ -96,5 +99,6 @@ pub async fn create_service(config: FerriskeyConfig) -> Result<FerrisKeyService,
         refresh_token,
         recovery_code,
         security_event,
+        prompt,
     ))
 }

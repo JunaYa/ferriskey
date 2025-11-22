@@ -60,10 +60,10 @@ API (axum) → Application → Domain → Infrastructure
 async fn get_user(&self, identity: Identity, input: GetUserInput) -> Result<User, CoreError> {
     // 1. Validate realm
     let realm = self.realm_repository.get_by_name(input.realm_name).await?.ok_or(CoreError::InvalidRealm)?;
-    
+
     // 2. Check permissions
     ensure_policy(self.policy.can_view_user(identity, realm).await, "insufficient permissions")?;
-    
+
     // 3. Execute business logic
     self.user_repository.get_by_id(input.user_id).await.map_err(|_| CoreError::InternalServerError)
 }
@@ -116,4 +116,3 @@ cd front && npm run dev
 6. ❌ Don't leak infrastructure into domain
 7. ❌ Don't skip permission checks
 8. ❌ Don't use database entities in domain layer
-

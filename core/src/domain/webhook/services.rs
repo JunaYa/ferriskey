@@ -6,6 +6,7 @@ use crate::domain::{
     crypto::ports::HasherRepository,
     health::ports::HealthCheckRepository,
     jwt::ports::{KeyStoreRepository, RefreshTokenRepository},
+    prompt::ports::PromptRepository,
     realm::ports::RealmRepository,
     role::ports::RoleRepository,
     seawatch::SecurityEventRepository,
@@ -22,8 +23,8 @@ use crate::domain::{
     },
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE> WebhookService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> WebhookService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -41,6 +42,7 @@ where
     RT: RefreshTokenRepository,
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
+    PR: PromptRepository,
 {
     async fn get_webhooks_by_realm(
         &self,

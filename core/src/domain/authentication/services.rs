@@ -18,6 +18,7 @@ use crate::domain::{
         entities::{ClaimsTyp, JwkKey, JwtClaim},
         ports::{KeyStoreRepository, RefreshTokenRepository},
     },
+    prompt::ports::PromptRepository,
     realm::ports::RealmRepository,
     role::ports::RoleRepository,
     seawatch::SecurityEventRepository,
@@ -32,8 +33,8 @@ use crate::domain::{
 pub mod authenticate;
 pub mod grant_type_service;
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE> AuthService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> AuthService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -51,6 +52,7 @@ where
     RT: RefreshTokenRepository,
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
+    PR: PromptRepository,
 {
     async fn auth(&self, input: AuthInput) -> Result<AuthOutput, CoreError> {
         let realm = self

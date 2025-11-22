@@ -15,6 +15,7 @@ use crate::domain::{
         entities::ClaimsTyp,
         ports::{KeyStoreRepository, RefreshTokenRepository},
     },
+    prompt::ports::PromptRepository,
     realm::ports::RealmRepository,
     role::ports::RoleRepository,
     seawatch::SecurityEventRepository,
@@ -33,8 +34,8 @@ pub struct GenerateTokenInput {
     pub realm_id: Uuid,
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE> GrantTypeService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> GrantTypeService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -52,6 +53,7 @@ where
     RT: RefreshTokenRepository,
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
+    PR: PromptRepository,
 {
     async fn authenticate_with_grant_type(
         &self,
@@ -79,8 +81,8 @@ where
     }
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE> GrantTypeStrategy
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> GrantTypeStrategy
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -98,6 +100,7 @@ where
     RT: RefreshTokenRepository,
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
+    PR: PromptRepository,
 {
     async fn authorization_code(&self, params: GrantTypeParams) -> Result<JwtToken, CoreError> {
         let code = params.code.ok_or(CoreError::InternalServerError)?;

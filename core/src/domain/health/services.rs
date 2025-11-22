@@ -9,6 +9,7 @@ use crate::domain::{
         ports::{HealthCheckRepository, HealthCheckService},
     },
     jwt::ports::{KeyStoreRepository, RefreshTokenRepository},
+    prompt::ports::PromptRepository,
     realm::ports::RealmRepository,
     role::ports::RoleRepository,
     seawatch::SecurityEventRepository,
@@ -17,8 +18,8 @@ use crate::domain::{
     webhook::ports::WebhookRepository,
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE> HealthCheckService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> HealthCheckService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -36,6 +37,7 @@ where
     RT: RefreshTokenRepository,
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
+    PR: PromptRepository,
 {
     async fn readness(&self) -> Result<DatabaseHealthStatus, CoreError> {
         self.health_check_repository.readness().await
