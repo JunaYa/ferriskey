@@ -122,6 +122,9 @@ impl RealmRepository for PostgresRealmRepository {
             realm_id: Set(realm_setting.realm_id),
             default_signing_algorithm: Set(realm_setting.default_signing_algorithm),
             updated_at: Set(realm_setting.updated_at.naive_utc()),
+            user_registration_enabled: Set(realm_setting.user_registration_enabled),
+            forgot_password_enabled: Set(realm_setting.forgot_password_enabled),
+            remember_me_enabled: Set(realm_setting.remember_me_enabled),
             ..Default::default()
         };
 

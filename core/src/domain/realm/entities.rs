@@ -50,9 +50,9 @@ impl RealmSetting {
             id: Uuid::new_v7(timestamp),
             realm_id,
             default_signing_algorithm,
-            forgot_password_enabled: false,
-            remember_me_enabled: false,
-            user_registration_enabled: false,
+            forgot_password_enabled: true,
+            remember_me_enabled: true,
+            user_registration_enabled: true,
             updated_at: now,
         }
     }
