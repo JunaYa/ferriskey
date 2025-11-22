@@ -1,0 +1,690 @@
+# FerrisKey Development Guide for AI Assistants
+
+## Project Overview
+
+FerrisKey is a modern Identity & Access Management (IAM) platform built with:
+- **Backend**: Rust (Axum web framework)
+- **Frontend**: TypeScript/React (Vite, TanStack Query, Zustand)
+- **Architecture**: Hexagonal Architecture (Ports & Adapters)
+- **Database**: PostgreSQL with Sea-ORM
+- **API Documentation**: OpenAPI/Swagger (utoipa)
+
+## Architecture: Hexagonal Architecture
+
+The project follows **Hexagonal Architecture** (Ports & Adapters) with clear separation of concerns:
+
+```
+┌─────────────────────────────────────────┐
+│           API Layer (axum)              │  ← HTTP handlers, routing
+├─────────────────────────────────────────┤
+│      Application Layer (core)           │  ← Use cases, orchestration
+├─────────────────────────────────────────┤
+│        Domain Layer (core)              │  ← Business logic, entities, ports
+│  ┌──────────────┬──────────────────┐   │
+│  │   Entities   │   Ports/Traits   │   │
+│  │   Services   │   Policies       │   │
+│  └──────────────┴──────────────────┘   │
+├─────────────────────────────────────────┤
+│    Infrastructure Layer (core)          │  ← Adapters: DB, external services
+│  ┌──────────────┬──────────────────┐   │
+│  │ Repositories │   Implementations│   │
+│  │ (Postgres)   │   (Argon2, etc)  │   │
+│  └──────────────┴──────────────────┘   │
+└─────────────────────────────────────────┘
+```
+
+### Layer Responsibilities
+
+1. **Domain Layer** (`core/src/domain/`)
+   - **Entities**: Core business objects (User, Realm, Role, etc.)
+   - **Ports**: Trait definitions (Repository traits, Service traits, Policy traits)
+   - **Services**: Domain services implementing business logic
+   - **Value Objects**: Immutable data structures
+   - **Policies**: Authorization and permission logic
+
+2. **Application Layer** (`core/src/application/`)
+   - Composes domain services
+   - Orchestrates use cases
+   - Creates concrete service instances with infrastructure adapters
+
+3. **Infrastructure Layer** (`core/src/infrastructure/`)
+   - **Repositories**: Postgres implementations of domain ports
+   - **External Services**: Hasher, KeyStore, etc.
+   - **Database**: Sea-ORM models and connections
+
+4. **API Layer** (`api/src/application/http/`)
+   - HTTP handlers (Axum)
+   - Request/Response DTOs
+   - Authentication middleware
+   - OpenAPI documentation
+
+5. **Frontend** (`front/src/`)
+   - React components
+   - TanStack Query for API calls
+   - Zustand for state management
+   - TypeScript interfaces
+
+## Code Organization
+
+### Rust Workspace Structure
+
+```
+ferriskey/
+├── core/              # Core business logic (hexagonal architecture)
+│   ├── src/
+│   │   ├── domain/     # Domain layer: entities, ports, services, policies
+│   │   ├── application/# Application layer: service composition
+│   │   ├── infrastructure/# Infrastructure: repositories, adapters
+│   │   └── entity/    # Sea-ORM database entities
+│   └── migrations/    # SQL migrations
+├── api/               # HTTP API server
+│   └── src/
+│       └── application/http/  # HTTP handlers, routers
+└── operator/          # Kubernetes operator (optional)
+```
+
+### Frontend Structure
+
+```
+front/src/
+├── api/               # API client, hooks, interfaces
+├── components/        # React components
+│   ├── ui/           # Reusable UI components (Radix UI)
+│   └── layout/       # Layout components
+├── pages/            # Page components (route-level)
+├── hooks/            # Custom React hooks
+├── store/            # Zustand stores
+├── routes/           # React Router configuration
+└── lib/              # Utilities, features, interfaces
+```
+
+## Rust Code Style
+
+### Naming Conventions
+
+- **Modules**: `snake_case` (e.g., `user_repository.rs`)
+- **Types/Structs/Enums**: `PascalCase` (e.g., `UserRepository`, `CoreError`)
+- **Functions**: `snake_case` (e.g., `get_user`, `create_user`)
+- **Variables**: `snake_case` (e.g., `realm_id`, `user_name`)
+- **Constants**: `SCREAMING_SNAKE_CASE` (e.g., `MAX_RETRIES`)
+- **Traits**: `PascalCase` with descriptive names (e.g., `UserRepository`, `UserService`)
+
+### Domain Layer Patterns
+
+#### Entities
+
+```rust
+// core/src/domain/user/entities.rs
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq)]
+pub struct User {
+    pub id: Uuid,
+    pub realm_id: Uuid,
+    pub username: String,
+    // ... other fields
+}
+
+impl User {
+    pub fn new(config: UserConfig) -> Self {
+        // Constructor logic
+    }
+}
+```
+
+**Guidelines**:
+- Use `#[derive(Serialize, Deserialize, ToSchema)]` for API serialization
+- Include `PartialEq` for equality checks
+- Use `Uuid` for IDs (v7 for new entities)
+- Include `created_at` and `updated_at` timestamps
+
+#### Ports (Traits)
+
+```rust
+// core/src/domain/user/ports.rs
+#[cfg_attr(test, mockall::automock)]
+pub trait UserRepository: Send + Sync {
+    fn get_by_id(
+        &self,
+        user_id: Uuid,
+    ) -> impl Future<Output = Result<User, CoreError>> + Send;
+    
+    fn create_user(
+        &self,
+        dto: CreateUserRequest,
+    ) -> impl Future<Output = Result<User, CoreError>> + Send;
+}
+```
+
+**Guidelines**:
+- All repository methods return `impl Future<Output = Result<T, E>> + Send`
+- Use `#[cfg_attr(test, mockall::automock)]` for testability
+- Traits must be `Send + Sync`
+- Use domain entities in signatures, not database models
+
+#### Services
+
+```rust
+// core/src/domain/user/services.rs
+impl<R, C, U, ...> UserService for Service<R, C, U, ...> {
+    async fn get_user(
+        &self,
+        identity: Identity,
+        input: GetUserInput,
+    ) -> Result<User, CoreError> {
+        // 1. Validate realm
+        let realm = self.realm_repository
+            .get_by_name(input.realm_name)
+            .await?
+            .ok_or(CoreError::InvalidRealm)?;
+        
+        // 2. Check permissions
+        ensure_policy(
+            self.policy.can_view_user(identity, realm).await,
+            "insufficient permissions",
+        )?;
+        
+        // 3. Execute business logic
+        self.user_repository
+            .get_by_id(input.user_id)
+            .await
+            .map_err(|_| CoreError::InternalServerError)
+    }
+}
+```
+
+**Guidelines**:
+- Always check permissions using `ensure_policy`
+- Use `Identity` for authentication context
+- Use input structs (e.g., `GetUserInput`) for parameters
+- Return domain entities, not DTOs
+- Handle errors with `CoreError`
+
+#### Policies
+
+```rust
+// core/src/domain/user/policies.rs
+pub trait UserPolicy: Send + Sync {
+    fn can_view_user(
+        &self,
+        identity: Identity,
+        target_realm: Realm,
+    ) -> impl Future<Output = Result<bool, CoreError>> + Send;
+}
+```
+
+**Guidelines**:
+- Policies check permissions, not business rules
+- Return `Result<bool, CoreError>` (true = allowed, false/error = denied)
+- Use `ensure_policy` helper to convert to `Result<()>`
+
+### Infrastructure Layer Patterns
+
+#### Repository Implementation
+
+```rust
+// core/src/infrastructure/user/repository.rs
+#[derive(Debug, Clone)]
+pub struct PostgresUserRepository {
+    pub db: DatabaseConnection,
+}
+
+impl PostgresUserRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+}
+
+impl UserRepository for PostgresUserRepository {
+    async fn get_by_id(&self, user_id: Uuid) -> Result<User, CoreError> {
+        let user_model = crate::entity::users::Entity::find_by_id(user_id)
+            .one(&self.db)
+            .await
+            .map_err(|_| CoreError::InternalServerError)?
+            .ok_or(CoreError::NotFound)?;
+        
+        Ok(user_model.into()) // Convert entity to domain model
+    }
+}
+```
+
+**Guidelines**:
+- Use Sea-ORM for database operations
+- Convert database entities to domain entities using `Into` trait
+- Map database errors to `CoreError`
+- Use `DatabaseConnection` from Sea-ORM
+
+### API Layer Patterns
+
+#### Handler Structure
+
+```rust
+// api/src/application/http/user/handlers/get_user.rs
+#[utoipa::path(
+    get,
+    path = "/{user_id}",
+    tag = "user",
+    summary = "Get a user by ID",
+    responses(
+        (status = 200, body = UserResponse),
+        (status = 404, description = "User not found"),
+        (status = 403, description = "Forbidden")
+    )
+)]
+pub async fn get_user(
+    Path((realm_name, user_id)): Path<(String, Uuid)>,
+    State(state): State<AppState>,
+    Extension(identity): Extension<Identity>,
+) -> Result<Response<UserResponse>, ApiError> {
+    let user = state
+        .service
+        .get_user(
+            identity,
+            GetUserInput {
+                user_id,
+                realm_name,
+            },
+        )
+        .await
+        .map_err(ApiError::from)?;
+    
+    Ok(Response::OK(UserResponse { data: user }))
+}
+```
+
+**Guidelines**:
+- Use `utoipa::path` macro for OpenAPI documentation
+- Extract path parameters with `Path`
+- Use `State<AppState>` for service access
+- Use `Extension<Identity>` for authenticated user
+- Convert `CoreError` to `ApiError` using `From` trait
+- Return `Response<T>` wrapper
+
+#### Router Structure
+
+```rust
+// api/src/application/http/user/router.rs
+pub fn user_routes(state: AppState) -> Router<AppState> {
+    Router::new()
+        .route("/", get(get_users).post(create_user))
+        .route("/{user_id}", get(get_user).put(update_user).delete(delete_user))
+        .route("/{user_id}/roles", get(get_user_roles))
+        .route("/{user_id}/roles/{role_id}", post(assign_role).delete(unassign_role))
+        .layer(middleware::from_fn_with_state(state.clone(), auth))
+        .with_state(state)
+}
+```
+
+**Guidelines**:
+- Group related routes in a router function
+- Apply authentication middleware with `layer(middleware::from_fn_with_state(...))`
+- Use RESTful conventions for routes
+- Include realm_name in path: `/realms/{realm_name}/users/{user_id}`
+
+#### Error Handling
+
+```rust
+// api/src/application/http/server/api_entities/api_error.rs
+impl From<CoreError> for ApiError {
+    fn from(error: CoreError) -> Self {
+        match error {
+            CoreError::NotFound => ApiError::NotFound("Resource not found".to_string()),
+            CoreError::Forbidden(msg) => ApiError::Forbidden(msg),
+            CoreError::Unauthorized => ApiError::Unauthorized("Unauthorized".to_string()),
+            // ... other mappings
+        }
+    }
+}
+```
+
+**Guidelines**:
+- Implement `From<CoreError>` for `ApiError`
+- Map domain errors to appropriate HTTP status codes
+- Provide meaningful error messages
+
+### Common Patterns
+
+#### Input/Output Structs
+
+```rust
+// Use input structs for service methods
+pub struct GetUserInput {
+    pub realm_name: String,
+    pub user_id: Uuid,
+}
+
+// Use response structs for API responses
+pub struct UserResponse {
+    pub data: User,
+}
+```
+
+#### Service Composition
+
+```rust
+// core/src/application/mod.rs
+pub type FerrisKeyService = Service<
+    PostgresRealmRepository,
+    PostgresClientRepository,
+    PostgresUserRepository,
+    // ... other repositories
+>;
+```
+
+## TypeScript/React Code Style
+
+### Naming Conventions
+
+- **Files**: `kebab-case` (e.g., `user.api.ts`, `page-user.tsx`)
+- **Components**: `PascalCase` (e.g., `UserList`, `PageUser`)
+- **Functions/Hooks**: `camelCase` (e.g., `useGetUser`, `createUser`)
+- **Interfaces/Types**: `PascalCase` with `I` prefix for interfaces (e.g., `IUser`, `UserState`)
+- **Constants**: `SCREAMING_SNAKE_CASE` or `camelCase` for config
+
+### API Client Patterns
+
+```typescript
+// front/src/api/user.api.ts
+export const useGetUser = ({ realm, userId }: GetUserQueryParams) => {
+  return useQuery({
+    ...window.tanstackApi.get('/realms/{realm_name}/users/{user_id}', {
+      path: {
+        realm_name: realm!,
+        user_id: userId!,
+      },
+    }).queryOptions,
+    enabled: !!userId && !!realm,
+  })
+}
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    ...window.tanstackApi.mutation('post', '/realms/{realm_name}/users', async (res) => {
+      return res.json()
+    }).mutationOptions,
+    onSuccess: async (res) => {
+      const queryKeys = window.tanstackApi.get('/realms/{realm_name}/users', {
+        path: { realm_name: res.data.realm!.name },
+      }).queryKey
+      await queryClient.invalidateQueries({ queryKey: queryKeys })
+    },
+  })
+}
+```
+
+**Guidelines**:
+- Use TanStack Query for all API calls
+- Use `window.tanstackApi` for typed API client
+- Invalidate queries on mutations
+- Use `enabled` option for conditional queries
+- Return typed responses
+
+### Component Patterns
+
+```typescript
+// front/src/pages/user/page-user.tsx
+export default function PageUser() {
+  const { realm_name } = useParams()
+  const { data: users } = useGetUsers({ realm: realm_name })
+  
+  return (
+    <div>
+      <UserList users={users} />
+    </div>
+  )
+}
+```
+
+**Guidelines**:
+- Use functional components with hooks
+- Extract reusable components
+- Use TypeScript for all components
+- Follow single responsibility principle
+
+### State Management
+
+```typescript
+// front/src/store/user.store.ts
+import { create } from 'zustand'
+
+const userStore = create<UserState>((set) => ({
+  user: null,
+  setUser: (user: IUser) => set({ user }),
+}))
+```
+
+**Guidelines**:
+- Use Zustand for global state
+- Keep stores focused and small
+- Use TanStack Query for server state
+- Use local state for UI-only state
+
+## Development Workflow
+
+### Pre-commit Hooks
+
+The project uses pre-commit hooks that run:
+- `cargo fmt --all` (Rust formatting)
+- `cargo clippy --all -- -D warnings` (Rust linting)
+- `npm run lint` (TypeScript/ESLint)
+- Other checks (Helm, Docker, etc.)
+
+**Always run these before committing**:
+```bash
+cargo fmt --all
+cargo clippy --all -- -D warnings
+cd front && npm run lint
+```
+
+### Adding a New Feature
+
+#### 1. Domain Layer (Core)
+
+1. **Create Entity** (`core/src/domain/{feature}/entities.rs`):
+   ```rust
+   #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq)]
+   pub struct Feature {
+       pub id: Uuid,
+       // ... fields
+   }
+   ```
+
+2. **Define Ports** (`core/src/domain/{feature}/ports.rs`):
+   ```rust
+   #[cfg_attr(test, mockall::automock)]
+   pub trait FeatureRepository: Send + Sync {
+       fn get_by_id(&self, id: Uuid) -> impl Future<Output = Result<Feature, CoreError>> + Send;
+   }
+   ```
+
+3. **Implement Service** (`core/src/domain/{feature}/services.rs`):
+   ```rust
+   impl<...> FeatureService for Service<...> {
+       async fn get_feature(&self, identity: Identity, input: GetFeatureInput) -> Result<Feature, CoreError> {
+           // Business logic
+       }
+   }
+   ```
+
+4. **Add Policies** (`core/src/domain/{feature}/policies.rs`):
+   ```rust
+   pub trait FeaturePolicy: Send + Sync {
+       fn can_view_feature(&self, identity: Identity, realm: Realm) -> impl Future<Output = Result<bool, CoreError>> + Send;
+   }
+   ```
+
+#### 2. Infrastructure Layer
+
+1. **Create Repository** (`core/src/infrastructure/{feature}/repository.rs`):
+   ```rust
+   impl FeatureRepository for PostgresFeatureRepository {
+       async fn get_by_id(&self, id: Uuid) -> Result<Feature, CoreError> {
+           // Database implementation
+       }
+   }
+   ```
+
+2. **Add to Service Composition** (`core/src/application/mod.rs`):
+   ```rust
+   pub type FerrisKeyService = Service<
+       // ... existing repositories
+       PostgresFeatureRepository,
+   >;
+   ```
+
+#### 3. API Layer
+
+1. **Create Handler** (`api/src/application/http/{feature}/handlers/get_feature.rs`):
+   ```rust
+   pub async fn get_feature(
+       Path((realm_name, feature_id)): Path<(String, Uuid)>,
+       State(state): State<AppState>,
+       Extension(identity): Extension<Identity>,
+   ) -> Result<Response<FeatureResponse>, ApiError> {
+       // Handler logic
+   }
+   ```
+
+2. **Create Router** (`api/src/application/http/{feature}/router.rs`):
+   ```rust
+   pub fn feature_routes(state: AppState) -> Router<AppState> {
+       Router::new()
+           .route("/", get(get_features))
+           .layer(middleware::from_fn_with_state(state.clone(), auth))
+           .with_state(state)
+   }
+   ```
+
+3. **Register Router** (`api/src/application/http/server/http_server.rs`):
+   ```rust
+   .merge(feature_routes(state.clone()))
+   ```
+
+#### 4. Frontend
+
+1. **Create API Hooks** (`front/src/api/{feature}.api.ts`):
+   ```typescript
+   export const useGetFeature = ({ realm, featureId }: GetFeatureParams) => {
+     return useQuery({
+       ...window.tanstackApi.get('/realms/{realm_name}/features/{feature_id}', {
+         path: { realm_name: realm!, feature_id: featureId! },
+       }).queryOptions,
+       enabled: !!featureId && !!realm,
+     })
+   }
+   ```
+
+2. **Create Page Component** (`front/src/pages/{feature}/page-{feature}.tsx`):
+   ```typescript
+   export default function PageFeature() {
+     const { realm_name } = useParams()
+     const { data } = useGetFeature({ realm: realm_name })
+     return <div>{/* UI */}</div>
+   }
+   ```
+
+3. **Add Route** (`front/src/routes/router.ts`):
+   ```typescript
+   <Route path='features/*' element={<PageFeature />} />
+   ```
+
+## Testing Guidelines
+
+### Rust Tests
+
+- Place unit tests in `#[cfg(test)]` modules
+- Use `mockall` for mocking traits
+- Test domain logic independently
+- Test repository implementations with test database
+
+### TypeScript Tests
+
+- Use Vitest for unit tests
+- Test hooks and components
+- Mock API calls
+
+## Error Handling
+
+### Rust
+
+- Use `Result<T, E>` for fallible operations
+- Use `CoreError` enum for domain errors
+- Use `ApiError` for HTTP layer errors
+- Implement `From` traits for error conversion
+
+### TypeScript
+
+- Handle errors in TanStack Query callbacks
+- Show user-friendly error messages
+- Use toast notifications for errors
+
+## Security Considerations
+
+- Always check permissions using policies
+- Validate all inputs
+- Use parameterized queries (Sea-ORM handles this)
+- Sanitize user inputs
+- Use HTTPS in production
+- Store secrets securely
+
+## Performance
+
+- Use `Arc` for shared references
+- Use async/await throughout
+- Implement pagination for lists
+- Use database indexes
+- Cache frequently accessed data
+
+## Documentation
+
+- Document public APIs with doc comments (`///`)
+- Include examples in documentation
+- Keep README files updated
+- Document architectural decisions
+
+## Common Pitfalls to Avoid
+
+1. **Don't leak infrastructure details into domain layer**
+   - Domain should not know about Postgres, Sea-ORM, etc.
+
+2. **Don't skip permission checks**
+   - Always use `ensure_policy` before operations
+
+3. **Don't use database entities in domain layer**
+   - Convert to domain entities using `Into` trait
+
+4. **Don't forget to invalidate queries**
+   - Always invalidate related queries after mutations
+
+5. **Don't ignore clippy warnings**
+   - Fix all clippy warnings before committing
+
+6. **Don't mix concerns**
+   - Keep handlers thin, business logic in services
+
+## Quick Reference
+
+### Rust Commands
+```bash
+cargo fmt --all                    # Format code
+cargo clippy --all -- -D warnings  # Lint code
+cargo test                         # Run tests
+```
+
+### TypeScript Commands
+```bash
+cd front
+npm run lint      # Lint code
+npm run build     # Build for production
+npm run dev       # Development server
+```
+
+### Database Migrations
+```bash
+cd core
+DATABASE_URL=... sqlx migrate run  # Run migrations
+```
+
+---
+
+**Remember**: Follow the hexagonal architecture principles. Keep domain logic pure and infrastructure details isolated. Always check permissions. Write tests. Format and lint before committing.
+
