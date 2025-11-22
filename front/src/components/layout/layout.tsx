@@ -5,7 +5,6 @@ import { useGetUserRealmsQuery } from '@/api/realm.api'
 import { RouterParams } from '@/routes/router'
 import useRealmStore from '@/store/realm.store'
 import { useEffect } from 'react'
-import GithubStarModal from '../github-star-modal'
 
 export default function Layout() {
   const { realm_name } = useParams<RouterParams>()
@@ -24,8 +23,6 @@ export default function Layout() {
       <SidebarInset>
         <Outlet />
       </SidebarInset>
-
-      <GithubStarModal />
     </SidebarProvider>
   )
 }
