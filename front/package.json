@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "typecheck": "tsc -b",
+    "preview": "vite preview",
+    "generate": "npx typed-openapi openapi.yaml --output src/api/api.client.ts --tanstack=api.tanstack.ts && npx pnpm lint --fix"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

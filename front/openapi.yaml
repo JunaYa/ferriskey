@@ -690,6 +690,180 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VerifyOtpResponse"
+  /realms/{realm_name}/prompts:
+    get:
+      tags:
+        - prompt
+      summary: Get prompts
+      description: Retrieves all prompts in the system related to the current realm.
+      operationId: get_prompts
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type:
+              - string
+              - "null"
+        - name: description
+          in: path
+          required: true
+          schema:
+            type:
+              - string
+              - "null"
+        - name: include_deleted
+          in: path
+          required: true
+          schema:
+            type:
+              - boolean
+              - "null"
+        - name: limit
+          in: path
+          required: true
+          schema:
+            type:
+              - integer
+              - "null"
+            format: int32
+            minimum: 0
+        - name: offset
+          in: path
+          required: true
+          schema:
+            type:
+              - integer
+              - "null"
+            format: int32
+            minimum: 0
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetPromptsResponse"
+    post:
+      tags:
+        - prompt
+      summary: Create prompt
+      description: Creates a new prompt in the system related to the current realm.
+      operationId: create_prompt
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePromptValidator"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatePromptResponse"
+  /realms/{realm_name}/prompts/{prompt_id}:
+    get:
+      tags:
+        - prompt
+      summary: Get prompt
+      description: Retrieves one prompt in the system related to the current realm.
+      operationId: get_prompt
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+        - name: prompt_id
+          in: path
+          description: Prompt ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prompt"
+    put:
+      tags:
+        - prompt
+      summary: Update prompt
+      description: Updates an existing prompt in the system related to the current realm.
+      operationId: update_prompt
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+        - name: prompt_id
+          in: path
+          description: Prompt ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePromptValidator"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdatePromptResponse"
+    delete:
+      tags:
+        - prompt
+      summary: Delete prompt
+      description: Soft deletes a prompt in the system related to the current realm.
+      operationId: delete_prompt
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+        - name: prompt_id
+          in: path
+          description: Prompt ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletePromptResponse"
   /realms/{realm_name}/protocol/openid-connect/auth:
     get:
       tags:
@@ -764,6 +938,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetCertsResponse"
+  /realms/{realm_name}/protocol/openid-connect/registrations:
+    post:
+      tags:
+        - auth
+      summary: Register a new user
+      description: Register a new user in the specified realm
+      operationId: registration_handler
+      parameters:
+        - name: realm_name
+          in: path
+          description: The realm name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistrationRequest"
+        required: true
+      responses:
+        "201":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JwtToken"
+        "403":
+          description: User registration is disabled for this realm
   /realms/{realm_name}/protocol/openid-connect/token:
     post:
       tags:
@@ -938,6 +1141,26 @@ paths:
           description: Invalid request data
         "404":
           description: Role not found
+  /realms/{realm_name}/seawatch/v1/security-events:
+    get:
+      tags:
+        - seawatch
+      summary: Get Security Events
+      operationId: get_security_events
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSecurityEventsResponse"
   /realms/{realm_name}/users:
     get:
       tags:
@@ -1472,6 +1695,13 @@ paths:
                 $ref: "#/components/schemas/DeleteWebhookResponse"
 components:
   schemas:
+    ActorType:
+      type: string
+      enum:
+        - user
+        - service_account
+        - admin
+        - system
     AssignRoleResponse:
       type: object
       required:
@@ -1662,6 +1892,29 @@ components:
           type: boolean
         service_account_enabled:
           type: boolean
+    CreatePromptResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/Prompt"
+    CreatePromptValidator:
+      type: object
+      required:
+        - name
+        - description
+        - template
+        - version
+      properties:
+        description:
+          type: string
+        name:
+          type: string
+        template:
+          type: string
+        version:
+          type: string
     CreateRealmValidator:
       type: object
       properties:
@@ -1788,6 +2041,13 @@ components:
           type: string
         realm_name:
           type: string
+    DeletePromptResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
     DeleteRealmResponse:
       type: string
     DeleteRoleResponse:
@@ -1837,6 +2097,11 @@ components:
           type: string
         realm_name:
           type: string
+    EventStatus:
+      type: string
+      enum:
+        - success
+        - failure
     GenerateRecoveryCodesRequest:
       type: object
       required:
@@ -1910,6 +2175,15 @@ components:
           type: string
         userinfo_endpoint:
           type: string
+    GetPromptsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Prompt"
     GetRoleResponse:
       type: object
       required:
@@ -1926,6 +2200,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Role"
+    GetSecurityEventsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityEvent"
     GetUserCredentialsResponse:
       type: object
       required:
@@ -2019,6 +2302,62 @@ components:
           type: string
         secret:
           type: string
+    Prompt:
+      type: object
+      required:
+        - id
+        - realm_id
+        - name
+        - description
+        - template
+        - version
+        - is_active
+        - is_deleted
+        - created_at
+        - updated_at
+        - created_by
+        - updated_by
+      properties:
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          format: uuid
+        deleted_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        deleted_by:
+          type:
+            - string
+            - "null"
+          format: uuid
+        description:
+          type: string
+        id:
+          type: string
+          format: uuid
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        name:
+          type: string
+        realm_id:
+          type: string
+          format: uuid
+        template:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+        updated_by:
+          type: string
+          format: uuid
+        version:
+          type: string
     Realm:
       type: object
       required:
@@ -2110,6 +2449,23 @@ components:
           format: date-time
         value:
           type: string
+    RegistrationRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        first_name:
+          type:
+            - string
+            - "null"
+        last_name:
+          type:
+            - string
+            - "null"
+        password:
+          type: string
+        username:
+          type: string
     RequiredAction:
       type: string
       enum:
@@ -2180,6 +2536,81 @@ components:
         updated_at:
           type: string
           format: date-time
+    SecurityEvent:
+      type: object
+      required:
+        - id
+        - realm_id
+        - event_type
+        - status
+        - timestamp
+      properties:
+        actor_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        actor_type:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/ActorType"
+        details: {}
+        event_type:
+          $ref: "#/components/schemas/SecurityEventType"
+        id:
+          $ref: "#/components/schemas/SecurityEventId"
+        ip_address:
+          type:
+            - string
+            - "null"
+        realm_id:
+          type: string
+          format: uuid
+        resource:
+          type:
+            - string
+            - "null"
+        status:
+          $ref: "#/components/schemas/EventStatus"
+        target_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        target_type:
+          type:
+            - string
+            - "null"
+        timestamp:
+          type: string
+          format: date-time
+        trace_id:
+          type:
+            - string
+            - "null"
+        user_agent:
+          type:
+            - string
+            - "null"
+    SecurityEventId:
+      type: string
+      format: uuid
+    SecurityEventType:
+      type: string
+      enum:
+        - login_success
+        - login_failure
+        - password_reset
+        - user_created
+        - user_deleted
+        - role_assigned
+        - role_unassigned
+        - role_created
+        - role_removed
+        - client_created
+        - client_deleted
+        - client_secret_rotated
+        - realm_config_changed
     SetupOtpResponse:
       type: object
       required:
@@ -2265,6 +2696,36 @@ components:
       properties:
         message:
           type: string
+    UpdatePromptResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/Prompt"
+    UpdatePromptValidator:
+      type: object
+      properties:
+        description:
+          type:
+            - string
+            - "null"
+        is_active:
+          type:
+            - boolean
+            - "null"
+        name:
+          type:
+            - string
+            - "null"
+        template:
+          type:
+            - string
+            - "null"
+        version:
+          type:
+            - string
+            - "null"
     UpdateRealmSettingValidator:
       type: object
       properties:
@@ -2507,9 +2968,9 @@ components:
         - user.created
         - user.updated
         - user.deleted
+        - user.role.assigned
+        - user.role.unassigned
         - user.bulk_deleted
-        - user.assign.role
-        - user.unassign.role
         - user.credentials.deleted
         - auth.reset_password
         - client.created
@@ -2522,6 +2983,8 @@ components:
         - redirect_uri.deleted
         - role.created
         - role.updated
+        - role.deleted
+        - role.permission.updated
         - realm.created
         - realm.updated
         - realm.deleted
