@@ -18,6 +18,7 @@ import axios, { AxiosInstance } from 'axios'
 import { BasicSpinner } from './components/ui/spinner'
 import { fetcher } from './api'
 import PageSeawatch from './pages/seawatch/page-seawatch'
+import PageFoodAnalysis from './pages/food-analysis/page-food-analysis'
 
 declare global {
   interface Window {
@@ -155,6 +156,7 @@ function App() {
             <Route path='roles/*' element={<PageRole />} />
             <Route path='realm-settings/*' element={<PageRealm />} />
             <Route path='seawatch/*' element={<PageSeawatch />} />
+            <Route path='food-analysis/*' element={<PageFoodAnalysis />} />
           </Route>
         </Route>
 

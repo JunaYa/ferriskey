@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BaseQuery } from '.'
+import { Schemas } from './api.client'
 
 export interface AnalyzeFoodTextMutationData {
   path: {
@@ -35,7 +36,7 @@ export const useAnalyzeFoodText = () => {
     ...window.tanstackApi
       .mutation('post', '/realms/{realm_name}/food-analysis/text', async (response) => {
         const data = await response.json()
-        return data
+        return data as Schemas.AnalyzeFoodResponse
       })
       .mutationOptions,
     onSuccess: async (_data, variables) => {

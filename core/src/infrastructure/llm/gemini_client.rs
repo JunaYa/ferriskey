@@ -64,6 +64,13 @@ struct PartResponse {
 
 impl GeminiLLMClient {
     pub fn new(api_key: String, model_name: String) -> Self {
+        if api_key.is_empty() {
+            tracing::warn!(
+                "Gemini API key is empty. Food analysis features will not work. \
+                Please set GEMINI_API_KEY environment variable."
+            );
+        }
+
         Self {
             api_key,
             model_name,
@@ -72,6 +79,14 @@ impl GeminiLLMClient {
     }
 
     async fn call_gemini_api(&self, request: GeminiRequest) -> Result<String, CoreError> {
+        // Check if API key is set
+        if self.api_key.is_empty() {
+            return Err(CoreError::ExternalServiceError(
+                "Gemini API key is not configured. Please set GEMINI_API_KEY environment variable."
+                    .to_string(),
+            ));
+        }
+
         let url = format!(
             "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
             self.model_name, self.api_key

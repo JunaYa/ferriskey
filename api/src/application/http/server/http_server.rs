@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::application::http::authentication::router::authentication_routes;
 use crate::application::http::client::router::client_routes;
+use crate::application::http::food_analysis::router::food_analysis_routes;
 use crate::application::http::prompt::router::prompt_routes;
 use crate::application::http::realm::router::realm_routes;
 use crate::application::http::role::router::role_routes;
@@ -110,6 +111,7 @@ pub fn router(state: AppState) -> Result<Router, anyhow::Error> {
         .merge(role_routes(state.clone()))
         .merge(webhook_routes(state.clone()))
         .merge(prompt_routes(state.clone()))
+        .merge(food_analysis_routes(state.clone()))
         .merge(trident_routes(state.clone()))
         .merge(seawatch_router(state.clone()))
         .merge(health_routes(&root_path))
