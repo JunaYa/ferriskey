@@ -12,12 +12,17 @@ import { toast } from 'sonner'
 import { Loader2, ImageIcon, FileText } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { useGetPrompts } from '@/api/prompt.api'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import PageAnalysisResult from './page-analysis-result'
+import { Schemas } from '@/api/api.client'
 
 export default function PageAnalyzeFood() {
   const { realm_name } = useParams<RouterParams>()
   const [selectedPromptId, setSelectedPromptId] = useState<string>('')
   const [textInput, setTextInput] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [analysisResultData, setAnalysisResultData] = useState<Schemas.FoodAnalysisResult | null>(null)
 
   // fetch prompts
   const { data: responseGetPrompts, isLoading } = useGetPrompts({ realm: realm_name })
@@ -26,6 +31,7 @@ export default function PageAnalyzeFood() {
   const analyzeFoodText = useAnalyzeFoodText()
   const analyzeFoodImage = useAnalyzeFoodImage()
 
+
   const handleTextAnalysis = async () => {
     if (!selectedPromptId || !textInput) {
       toast.error('Please select a prompt and enter text')
@@ -33,7 +39,7 @@ export default function PageAnalyzeFood() {
     }
 
     try {
-      await analyzeFoodText.mutateAsync({
+      const result: Schemas.AnalyzeFoodResponse = await analyzeFoodText.mutateAsync({
         path: { realm_name: realm_name! },
         body: {
           prompt_id: selectedPromptId,
@@ -42,6 +48,8 @@ export default function PageAnalyzeFood() {
       })
       toast.success('Food analysis completed successfully')
       setTextInput('')
+      setAnalysisResultData(result.data)
+      setIsDialogOpen(true)
     } catch {
       toast.error('Failed to analyze food')
     }
@@ -58,12 +66,14 @@ export default function PageAnalyzeFood() {
       formData.append('prompt_id', selectedPromptId)
       formData.append('image', imageFile)
 
-      await analyzeFoodImage.mutateAsync({
+      const result = await analyzeFoodImage.mutateAsync({
         path: { realm_name: realm_name! },
         body: formData,
       })
       toast.success('Image analysis completed successfully')
       setImageFile(null)
+      setAnalysisResultData(result.data)
+      setIsDialogOpen(true)
     } catch {
       toast.error('Failed to analyze image')
     }
@@ -187,6 +197,18 @@ export default function PageAnalyzeFood() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className='max-w-4xl max-h-[90vh] overflow-y-auto'>
+          <DialogHeader>
+            <DialogTitle>Analysis Result</DialogTitle>
+          </DialogHeader>
+          <PageAnalysisResult
+            result={analysisResultData}
+            isLoading={false}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
