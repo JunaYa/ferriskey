@@ -523,6 +523,117 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Role"
+  /realms/{realm_name}/food-analysis:
+    get:
+      tags:
+        - food-analysis
+      summary: Get food analysis history
+      description: Get history of food analysis requests for a realm
+      operationId: get_analysis_history
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAnalysisHistoryResponse"
+  /realms/{realm_name}/food-analysis/image:
+    post:
+      tags:
+        - food-analysis
+      summary: Analyze food from image
+      description: Analyzes food items from image using LLM vision
+      operationId: analyze_food_image
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeFoodResponse"
+  /realms/{realm_name}/food-analysis/text:
+    post:
+      tags:
+        - food-analysis
+      summary: Analyze food from text description
+      description: Analyzes food items from text description using LLM
+      operationId: analyze_food_text
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeFoodTextRequest"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeFoodResponse"
+  /realms/{realm_name}/food-analysis/{request_id}/result:
+    get:
+      tags:
+        - food-analysis
+      summary: Get food analysis result
+      description: Get the result of a specific food analysis request
+      operationId: get_analysis_result
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+        - name: request_id
+          in: path
+          description: Request ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeFoodResponse"
   /realms/{realm_name}/login-actions/authenticate:
     post:
       tags:
@@ -1692,6 +1803,24 @@ components:
         - service_account
         - admin
         - system
+    AnalyzeFoodResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/FoodAnalysisResult"
+    AnalyzeFoodTextRequest:
+      type: object
+      required:
+        - prompt_id
+        - text_input
+      properties:
+        prompt_id:
+          type: string
+          format: uuid
+        text_input:
+          type: string
     AssignRoleResponse:
       type: object
       required:
@@ -2087,11 +2216,96 @@ components:
           type: string
         realm_name:
           type: string
+    DishAnalysis:
+      type: object
+      required:
+        - dish_name
+        - safety_level
+        - reason
+        - ibd_concerns
+        - ibs_concerns
+        - recommendations
+        - ingredients
+      properties:
+        dish_name:
+          type: string
+        ibd_concerns:
+          type: array
+          items:
+            type: string
+        ibs_concerns:
+          type: array
+          items:
+            type: string
+        ingredients:
+          type: array
+          items:
+            $ref: "#/components/schemas/RiskIngredient"
+        reason:
+          type: string
+        recommendations:
+          type: string
+        safety_level:
+          $ref: "#/components/schemas/SafetyLevel"
     EventStatus:
       type: string
       enum:
         - success
         - failure
+    FoodAnalysisRequest:
+      type: object
+      required:
+        - id
+        - realm_id
+        - prompt_id
+        - input_type
+        - input_content
+        - created_by
+        - created_at
+      properties:
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          format: uuid
+        id:
+          type: string
+          format: uuid
+        input_content:
+          type: string
+        input_type:
+          $ref: "#/components/schemas/InputType"
+        prompt_id:
+          type: string
+          format: uuid
+        realm_id:
+          type: string
+          format: uuid
+    FoodAnalysisResult:
+      type: object
+      required:
+        - id
+        - request_id
+        - dishes
+        - raw_response
+        - created_at
+      properties:
+        created_at:
+          type: string
+          format: date-time
+        dishes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DishAnalysis"
+        id:
+          type: string
+          format: uuid
+        raw_response:
+          type: string
+        request_id:
+          type: string
+          format: uuid
     GenerateRecoveryCodesRequest:
       type: object
       required:
@@ -2113,6 +2327,15 @@ components:
           type: array
           items:
             type: string
+    GetAnalysisHistoryResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/FoodAnalysisRequest"
     GetCertsResponse:
       type: object
       required:
@@ -2233,6 +2456,11 @@ components:
         - password
         - client_credentials
         - refresh_token
+    InputType:
+      type: string
+      enum:
+        - image
+        - text
     JwkKey:
       type: object
       required:
@@ -2485,6 +2713,16 @@ components:
           type: boolean
         value:
           type: string
+    RiskIngredient:
+      type: object
+      required:
+        - ingredient_name
+        - risk_reason
+      properties:
+        ingredient_name:
+          type: string
+        risk_reason:
+          type: string
     Role:
       type: object
       required:
@@ -2526,6 +2764,12 @@ components:
         updated_at:
           type: string
           format: date-time
+    SafetyLevel:
+      type: string
+      enum:
+        - SAFE
+        - CAUTION
+        - UNSAFE
     SecurityEvent:
       type: object
       required:

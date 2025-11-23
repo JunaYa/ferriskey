@@ -1,6 +1,26 @@
 export namespace Schemas {
   // <Schemas>
   export type ActorType = 'user' | 'service_account' | 'admin' | 'system';
+  export type RiskIngredient = { ingredient_name: string; risk_reason: string };
+  export type SafetyLevel = 'SAFE' | 'CAUTION' | 'UNSAFE';
+  export type DishAnalysis = {
+    dish_name: string;
+    ibd_concerns: Array<string>;
+    ibs_concerns: Array<string>;
+    ingredients: Array<RiskIngredient>;
+    reason: string;
+    recommendations: string;
+    safety_level: SafetyLevel;
+  };
+  export type FoodAnalysisResult = {
+    created_at: string;
+    dishes: Array<DishAnalysis>;
+    id: string;
+    raw_response: string;
+    request_id: string;
+  };
+  export type AnalyzeFoodResponse = { data: FoodAnalysisResult };
+  export type AnalyzeFoodTextRequest = { prompt_id: string; text_input: string };
   export type AssignRoleResponse = { message: string; realm_name: string; user_id: string };
   export type AuthResponse = { url: string };
   export type AuthenticateRequest = Partial<{ password: string | null; username: string | null }>;
@@ -185,8 +205,19 @@ export namespace Schemas {
   export type DeleteUserResponse = { count: number };
   export type DeleteWebhookResponse = { message: string; realm_name: string };
   export type EventStatus = 'success' | 'failure';
+  export type InputType = 'image' | 'text';
+  export type FoodAnalysisRequest = {
+    created_at: string;
+    created_by: string;
+    id: string;
+    input_content: string;
+    input_type: InputType;
+    prompt_id: string;
+    realm_id: string;
+  };
   export type GenerateRecoveryCodesRequest = { amount: number; code_format: string };
   export type GenerateRecoveryCodesResponse = { codes: Array<string> };
+  export type GetAnalysisHistoryResponse = { data: Array<FoodAnalysisRequest> };
   export type JwkKey = { alg: string; e: string; kid: string; kty: string; n: string; use_: string; x5c: string };
   export type GetCertsResponse = { keys: Array<JwkKey> };
   export type GetClientResponse = { data: Client };
@@ -503,6 +534,45 @@ export namespace Endpoints {
       body: Schemas.CreateRoleValidator;
     };
     response: Schemas.Role;
+  };
+  export type get_Get_analysis_history = {
+    method: 'GET';
+    path: '/realms/{realm_name}/food-analysis';
+    requestFormat: 'json';
+    parameters: {
+      query: Partial<{ offset: number; limit: number }>;
+      path: { realm_name: string };
+    };
+    response: Schemas.GetAnalysisHistoryResponse;
+  };
+  export type post_Analyze_food_image = {
+    method: 'POST';
+    path: '/realms/{realm_name}/food-analysis/image';
+    requestFormat: 'json';
+    parameters: {
+      path: { realm_name: string };
+    };
+    response: Schemas.AnalyzeFoodResponse;
+  };
+  export type post_Analyze_food_text = {
+    method: 'POST';
+    path: '/realms/{realm_name}/food-analysis/text';
+    requestFormat: 'json';
+    parameters: {
+      path: { realm_name: string };
+
+      body: Schemas.AnalyzeFoodTextRequest;
+    };
+    response: Schemas.AnalyzeFoodResponse;
+  };
+  export type get_Get_analysis_result = {
+    method: 'GET';
+    path: '/realms/{realm_name}/food-analysis/{request_id}/result';
+    requestFormat: 'json';
+    parameters: {
+      path: { realm_name: string; request_id: string };
+    };
+    response: Schemas.AnalyzeFoodResponse;
   };
   export type post_Authenticate = {
     method: 'POST';
@@ -897,6 +967,8 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/clients': Endpoints.post_Create_client;
     '/realms/{realm_name}/clients/{client_id}/redirects': Endpoints.post_Create_redirect_uri;
     '/realms/{realm_name}/clients/{client_id}/roles': Endpoints.post_Create_role;
+    '/realms/{realm_name}/food-analysis/image': Endpoints.post_Analyze_food_image;
+    '/realms/{realm_name}/food-analysis/text': Endpoints.post_Analyze_food_text;
     '/realms/{realm_name}/login-actions/authenticate': Endpoints.post_Authenticate;
     '/realms/{realm_name}/login-actions/burn-recovery-code': Endpoints.post_Burn_recovery_code;
     '/realms/{realm_name}/login-actions/challenge-otp': Endpoints.post_Challenge_otp;
@@ -918,6 +990,8 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/clients/{client_id}': Endpoints.get_Get_client;
     '/realms/{realm_name}/clients/{client_id}/redirects': Endpoints.get_Get_redirect_uris;
     '/realms/{realm_name}/clients/{client_id}/roles': Endpoints.get_Get_client_roles;
+    '/realms/{realm_name}/food-analysis': Endpoints.get_Get_analysis_history;
+    '/realms/{realm_name}/food-analysis/{request_id}/result': Endpoints.get_Get_analysis_result;
     '/realms/{realm_name}/login-actions/setup-otp': Endpoints.get_Setup_otp;
     '/realms/{realm_name}/prompts': Endpoints.get_Get_prompts;
     '/realms/{realm_name}/prompts/{prompt_id}': Endpoints.get_Get_prompt;
