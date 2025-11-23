@@ -16,6 +16,7 @@ use crate::{
             ports::CredentialRepository,
         },
         crypto::ports::HasherRepository,
+        food_analysis::{FoodAnalysisRepository, LLMClient},
         health::ports::HealthCheckRepository,
         jwt::ports::{KeyStoreRepository, RefreshTokenRepository},
         prompt::ports::PromptRepository,
@@ -131,8 +132,8 @@ fn decode_string(code: String, format: RecoveryCodeFormat) -> Result<MfaRecovery
     }
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> TridentService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> TridentService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -151,6 +152,8 @@ where
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
     PR: PromptRepository,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
 {
     async fn generate_recovery_code(
         &self,

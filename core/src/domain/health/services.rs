@@ -4,6 +4,7 @@ use crate::domain::{
     common::{entities::app_errors::CoreError, services::Service},
     credential::ports::CredentialRepository,
     crypto::ports::HasherRepository,
+    food_analysis::ports::{FoodAnalysisRepository, LLMClient},
     health::{
         entities::DatabaseHealthStatus,
         ports::{HealthCheckRepository, HealthCheckService},
@@ -18,8 +19,8 @@ use crate::domain::{
     webhook::ports::WebhookRepository,
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> HealthCheckService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> HealthCheckService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -38,6 +39,8 @@ where
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
     PR: PromptRepository,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
 {
     async fn readness(&self) -> Result<DatabaseHealthStatus, CoreError> {
         self.health_check_repository.readness().await

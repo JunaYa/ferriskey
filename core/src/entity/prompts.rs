@@ -61,6 +61,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
+    FoodAnalysisRequests,
     Realms,
     Users3,
     Users2,
@@ -92,6 +93,9 @@ impl ColumnTrait for Column {
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
+            Self::FoodAnalysisRequests => {
+                Entity::has_many(super::food_analysis_requests::Entity).into()
+            }
             Self::Realms => Entity::belongs_to(super::realms::Entity)
                 .from(Column::RealmId)
                 .to(super::realms::Column::Id)
@@ -109,6 +113,12 @@ impl RelationTrait for Relation {
                 .to(super::users::Column::Id)
                 .into(),
         }
+    }
+}
+
+impl Related<super::food_analysis_requests::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FoodAnalysisRequests.def()
     }
 }
 

@@ -14,6 +14,7 @@ pub struct AppConfig {
 #[derive(Clone, Debug)]
 pub struct FerriskeyConfig {
     pub database: DatabaseConfig,
+    pub llm: LLMConfig,
 }
 
 #[derive(Clone, Debug)]
@@ -23,6 +24,12 @@ pub struct DatabaseConfig {
     pub username: String,
     pub password: String,
     pub name: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct LLMConfig {
+    pub gemini_api_key: String,
+    pub gemini_model: String,
 }
 
 pub fn generate_timestamp() -> (DateTime<Utc>, Timestamp) {

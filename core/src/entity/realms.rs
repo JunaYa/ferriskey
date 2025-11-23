@@ -43,6 +43,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 pub enum Relation {
     AuthSessions,
     Clients,
+    FoodAnalysisRequests,
     JwtKeys,
     Prompts,
     RealmSettings,
@@ -70,6 +71,9 @@ impl RelationTrait for Relation {
         match self {
             Self::AuthSessions => Entity::has_many(super::auth_sessions::Entity).into(),
             Self::Clients => Entity::has_many(super::clients::Entity).into(),
+            Self::FoodAnalysisRequests => {
+                Entity::has_many(super::food_analysis_requests::Entity).into()
+            }
             Self::JwtKeys => Entity::has_many(super::jwt_keys::Entity).into(),
             Self::Prompts => Entity::has_many(super::prompts::Entity).into(),
             Self::RealmSettings => Entity::has_many(super::realm_settings::Entity).into(),
@@ -91,6 +95,12 @@ impl Related<super::auth_sessions::Entity> for Entity {
 impl Related<super::clients::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Clients.def()
+    }
+}
+
+impl Related<super::food_analysis_requests::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FoodAnalysisRequests.def()
     }
 }
 

@@ -145,4 +145,7 @@ pub enum CoreError {
 
     #[error("Service unavailable: {0}")]
     ServiceUnavailable(String),
+
+    #[error("Failed to parse LLM response: {0}")]
+    ExternalServiceError(String),
 }

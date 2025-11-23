@@ -1,7 +1,9 @@
 pub mod client;
 pub mod common;
 pub mod db;
+pub mod food_analysis;
 pub mod health;
+pub mod llm;
 pub mod prompt;
 pub mod realm;
 pub mod recovery_code;

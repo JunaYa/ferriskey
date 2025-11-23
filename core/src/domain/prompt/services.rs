@@ -4,6 +4,7 @@ use crate::domain::{
     common::{entities::app_errors::CoreError, policies::ensure_policy, services::Service},
     credential::ports::CredentialRepository,
     crypto::ports::HasherRepository,
+    food_analysis::ports::{FoodAnalysisRepository, LLMClient},
     health::ports::HealthCheckRepository,
     jwt::ports::{KeyStoreRepository, RefreshTokenRepository},
     prompt::{
@@ -22,8 +23,8 @@ use crate::domain::{
     webhook::ports::WebhookRepository,
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> PromptService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> PromptService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -42,6 +43,8 @@ where
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
     PR: PromptRepository,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
 {
     async fn get_prompts(
         &self,

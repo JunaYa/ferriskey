@@ -105,6 +105,9 @@ impl From<CoreError> for ApiError {
             CoreError::ServiceUnavailable(msg) => Self::ServiceUnavailable(msg),
             CoreError::RecoveryCodeGenError(msg) => Self::BadRequest(msg),
             CoreError::RecoveryCodeBurnError(msg) => Self::BadRequest(msg),
+            CoreError::ExternalServiceError(msg) => {
+                Self::InternalServerError(format!("External service error: {}", msg))
+            }
         }
     }
 }

@@ -6,7 +6,9 @@ use crate::{
             redirect_uri_postgres_repository::PostgresRedirectUriRepository,
         },
         db::postgres::{Postgres, PostgresConfig},
+        food_analysis::repositories::food_analysis_repository::PostgresFoodAnalysisRepository,
         health::repositories::PostgresHealthCheckRepository,
+        llm::gemini_client::GeminiLLMClient,
         prompt::repositories::prompt_repository::PostgresPromptRepository,
         realm::repositories::realm_postgres_repository::PostgresRealmRepository,
         repositories::{
@@ -48,6 +50,8 @@ pub type FerrisKeyService = Service<
     RandBytesRecoveryCodeRepository<10, Argon2HasherRepository>,
     PostgresSecurityEventRepository,
     PostgresPromptRepository,
+    PostgresFoodAnalysisRepository,
+    GeminiLLMClient,
 >;
 
 pub async fn create_service(config: FerriskeyConfig) -> Result<FerrisKeyService, CoreError> {
@@ -81,6 +85,13 @@ pub async fn create_service(config: FerriskeyConfig) -> Result<FerrisKeyService,
     let recovery_code = RandBytesRecoveryCodeRepository::new(hasher.clone());
     let security_event = PostgresSecurityEventRepository::new(postgres.get_db());
     let prompt = PostgresPromptRepository::new(postgres.get_db());
+    let food_analysis = PostgresFoodAnalysisRepository::new(postgres.get_db());
+
+    // Initialize LLM client with config
+    let llm_client = GeminiLLMClient::new(
+        config.llm.gemini_api_key.clone(),
+        config.llm.gemini_model.clone(),
+    );
 
     Ok(Service::new(
         realm,
@@ -100,5 +111,7 @@ pub async fn create_service(config: FerriskeyConfig) -> Result<FerrisKeyService,
         recovery_code,
         security_event,
         prompt,
+        food_analysis,
+        llm_client,
     ))
 }

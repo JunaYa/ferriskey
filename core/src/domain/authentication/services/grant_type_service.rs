@@ -10,6 +10,7 @@ use crate::domain::{
     common::{entities::app_errors::CoreError, services::Service},
     credential::ports::CredentialRepository,
     crypto::ports::HasherRepository,
+    food_analysis::ports::{FoodAnalysisRepository, LLMClient},
     health::ports::HealthCheckRepository,
     jwt::{
         entities::ClaimsTyp,
@@ -34,8 +35,8 @@ pub struct GenerateTokenInput {
     pub realm_id: Uuid,
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> GrantTypeService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> GrantTypeService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -54,6 +55,8 @@ where
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
     PR: PromptRepository,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
 {
     async fn authenticate_with_grant_type(
         &self,
@@ -81,8 +84,8 @@ where
     }
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> GrantTypeStrategy
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> GrantTypeStrategy
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -101,6 +104,8 @@ where
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
     PR: PromptRepository,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
 {
     async fn authorization_code(&self, params: GrantTypeParams) -> Result<JwtToken, CoreError> {
         let code = params.code.ok_or(CoreError::InternalServerError)?;

@@ -12,6 +12,7 @@ use crate::domain::{
     },
     credential::ports::CredentialRepository,
     crypto::ports::HasherRepository,
+    food_analysis::ports::{FoodAnalysisRepository, LLMClient},
     health::ports::HealthCheckRepository,
     jwt::ports::{KeyStoreRepository, RefreshTokenRepository},
     prompt::ports::PromptRepository,
@@ -35,8 +36,8 @@ use crate::domain::{
     },
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> RealmService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> RealmService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -55,6 +56,8 @@ where
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
     PR: PromptRepository,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
 {
     async fn create_realm(
         &self,

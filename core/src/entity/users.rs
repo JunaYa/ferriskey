@@ -58,6 +58,7 @@ pub enum Relation {
     AuthSessions,
     Clients,
     Credentials,
+    FoodAnalysisRequests,
     Realms,
     RefreshTokens,
     UserRequiredActions,
@@ -93,6 +94,9 @@ impl RelationTrait for Relation {
                 .to(super::clients::Column::Id)
                 .into(),
             Self::Credentials => Entity::has_many(super::credentials::Entity).into(),
+            Self::FoodAnalysisRequests => {
+                Entity::has_many(super::food_analysis_requests::Entity).into()
+            }
             Self::Realms => Entity::belongs_to(super::realms::Entity)
                 .from(Column::RealmId)
                 .to(super::realms::Column::Id)
@@ -122,6 +126,12 @@ impl Related<super::clients::Entity> for Entity {
 impl Related<super::credentials::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Credentials.def()
+    }
+}
+
+impl Related<super::food_analysis_requests::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FoodAnalysisRequests.def()
     }
 }
 

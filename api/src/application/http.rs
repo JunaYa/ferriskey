@@ -2,6 +2,7 @@ pub mod authentication;
 pub mod client;
 
 pub mod error;
+pub mod food_analysis;
 pub mod health;
 pub mod prompt;
 pub mod realm;

@@ -20,6 +20,7 @@ use crate::domain::{
     },
     credential::ports::CredentialRepository,
     crypto::ports::HasherRepository,
+    food_analysis::ports::{FoodAnalysisRepository, LLMClient},
     health::ports::HealthCheckRepository,
     jwt::{
         entities::{ClaimsTyp, Jwt, JwtClaim},
@@ -40,7 +41,7 @@ use crate::domain::{
 };
 
 #[derive(Clone)]
-pub struct Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+pub struct Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -59,6 +60,10 @@ where
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
     PR: PromptRepository,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
 {
     pub(crate) realm_repository: Arc<R>,
     pub(crate) client_repository: Arc<C>,
@@ -77,12 +82,14 @@ where
     pub(crate) recovery_code_repository: Arc<RC>,
     pub(crate) security_event_repository: Arc<SE>,
     pub(crate) prompt_repository: Arc<PR>,
+    pub(crate) food_analysis_repository: Arc<FA>,
+    pub(crate) llm_client: Arc<LLM>,
 
     pub(crate) policy: FerriskeyPolicy<U, C, UR>,
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
-    Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+    Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -101,6 +108,10 @@ where
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
     PR: PromptRepository,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -121,6 +132,8 @@ where
         recovery_code_repository: RC,
         security_event_repository: SE,
         prompt_repository: PR,
+        food_analysis_repository: FA,
+        llm_client: LLM,
     ) -> Self {
         let user_repo_arc = Arc::new(user_repository);
         let client_repo_arc = Arc::new(client_repository);
@@ -150,6 +163,8 @@ where
             recovery_code_repository: Arc::new(recovery_code_repository),
             security_event_repository: Arc::new(security_event_repository),
             prompt_repository: Arc::new(prompt_repository),
+            food_analysis_repository: Arc::new(food_analysis_repository),
+            llm_client: Arc::new(llm_client),
             policy,
         }
     }
@@ -302,8 +317,8 @@ where
     }
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR> CoreService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> CoreService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -322,6 +337,8 @@ where
     RC: RecoveryCodeRepository,
     SE: SecurityEventRepository,
     PR: PromptRepository,
+    FA: FoodAnalysisRepository,
+    LLM: LLMClient,
 {
     async fn initialize_application(
         &self,
@@ -618,6 +635,7 @@ pub mod tests {
         common::{entities::app_errors::CoreError, services::Service},
         credential::ports::MockCredentialRepository,
         crypto::ports::MockHasherRepository,
+        food_analysis::{MockFoodAnalysisRepository, MockLLMClient},
         health::ports::MockHealthCheckRepository,
         jwt::ports::{MockKeyStoreRepository, MockRefreshTokenRepository},
         prompt::ports::MockPromptRepository,
@@ -653,6 +671,8 @@ pub mod tests {
         MockRecoveryCodeRepository,
         MockSecurityEventRepository,
         MockPromptRepository,
+        MockFoodAnalysisRepository,
+        MockLLMClient,
     >;
 
     /// Macros pour créer des mocks async avec clonage automatique
@@ -719,6 +739,8 @@ pub mod tests {
         recovery_code_repo: MockRecoveryCodeRepository,
         security_event_repo: MockSecurityEventRepository,
         prompt_repo: MockPromptRepository,
+        food_analysis_repo: MockFoodAnalysisRepository,
+        llm_client: MockLLMClient,
     }
 
     impl Default for ServiceTestBuilder {
@@ -747,6 +769,8 @@ pub mod tests {
                 recovery_code_repo: MockRecoveryCodeRepository::new(),
                 security_event_repo: MockSecurityEventRepository::new(),
                 prompt_repo: MockPromptRepository::new(),
+                food_analysis_repo: MockFoodAnalysisRepository::new(),
+                llm_client: MockLLMClient::new(),
             }
         }
 
@@ -1198,6 +1222,8 @@ pub mod tests {
                 self.recovery_code_repo,
                 self.security_event_repo,
                 self.prompt_repo,
+                self.food_analysis_repo,
+                self.llm_client,
             )
         }
     }

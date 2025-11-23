@@ -49,6 +49,8 @@ pub struct Args {
     )]
     pub env: Environment,
     #[command(flatten)]
+    pub llm: LLMArgs,
+    #[command(flatten)]
     pub log: LogArgs,
     #[command(flatten)]
     pub server: ServerArgs,
@@ -67,6 +69,7 @@ impl Default for Args {
             admin: AdminArgs::default(),
             db: DatabaseArgs::default(),
             env: Environment::Development,
+            llm: LLMArgs::default(),
             log: LogArgs::default(),
             server: ServerArgs::default(),
             webapp_url: "http://localhost:5555".to_string(),
@@ -164,6 +167,35 @@ impl Default for DatabaseArgs {
             password: "postgres".to_string(),
             port: 5432,
             user: "postgres".to_string(),
+        }
+    }
+}
+
+#[derive(clap::Args, Debug, Clone)]
+pub struct LLMArgs {
+    #[arg(
+        long = "gemini-api-key",
+        env = "GEMINI_API_KEY",
+        default_value = "",
+        name = "GEMINI_API_KEY",
+        long_help = "The Gemini API key to use for LLM operations"
+    )]
+    pub gemini_api_key: String,
+    #[arg(
+        long = "gemini-model",
+        env = "GEMINI_MODEL",
+        default_value = "gemini-2.0-flash-exp",
+        name = "GEMINI_MODEL",
+        long_help = "The Gemini model to use"
+    )]
+    pub gemini_model: String,
+}
+
+impl Default for LLMArgs {
+    fn default() -> Self {
+        Self {
+            gemini_api_key: String::new(),
+            gemini_model: "gemini-2.0-flash-exp".to_string(),
         }
     }
 }
@@ -304,6 +336,10 @@ impl From<Args> for FerriskeyConfig {
                 password: value.db.password,
                 port: value.db.port,
                 username: value.db.user,
+            },
+            llm: ferriskey_core::domain::common::LLMConfig {
+                gemini_api_key: value.llm.gemini_api_key,
+                gemini_model: value.llm.gemini_model,
             },
         }
     }

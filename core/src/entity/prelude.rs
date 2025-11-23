@@ -3,6 +3,8 @@
 pub use super::auth_sessions::Entity as AuthSessions;
 pub use super::clients::Entity as Clients;
 pub use super::credentials::Entity as Credentials;
+pub use super::food_analysis_requests::Entity as FoodAnalysisRequests;
+pub use super::food_analysis_results::Entity as FoodAnalysisResults;
 pub use super::jwt_keys::Entity as JwtKeys;
 pub use super::prompts::Entity as Prompts;
 pub use super::realm_settings::Entity as RealmSettings;
