@@ -574,14 +574,8 @@ export namespace Endpoints {
     path: '/realms/{realm_name}/prompts';
     requestFormat: 'json';
     parameters: {
-      path: {
-        realm_name: string;
-        name: string | null;
-        description: string | null;
-        include_deleted: boolean | null;
-        limit: number | null;
-        offset: number | null;
-      };
+      query: Partial<{ name: string; description: string; include_deleted: boolean; limit: number; offset: number }>;
+      path: { realm_name: string };
     };
     response: Schemas.GetPromptsResponse;
   };

@@ -35,8 +35,6 @@ export default function PageRealmSettingsCreateWebhook({
   const form = useFormContext<CreateWebhookSchema>()
   const formIsValid = form.formState.isValid
 
-  console.log(formIsValid, form.getValues(), form.formState)
-
 
   return (
     <div className='flex flex-col p-4 gap-4'>

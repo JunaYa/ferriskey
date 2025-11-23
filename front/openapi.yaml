@@ -705,42 +705,32 @@ paths:
           schema:
             type: string
         - name: name
-          in: path
-          required: true
+          in: query
+          required: false
           schema:
-            type:
-              - string
-              - "null"
+            type: string
         - name: description
-          in: path
-          required: true
+          in: query
+          required: false
           schema:
-            type:
-              - string
-              - "null"
+            type: string
         - name: include_deleted
-          in: path
-          required: true
+          in: query
+          required: false
           schema:
-            type:
-              - boolean
-              - "null"
+            type: boolean
         - name: limit
-          in: path
-          required: true
+          in: query
+          required: false
           schema:
-            type:
-              - integer
-              - "null"
+            type: integer
             format: int32
             minimum: 0
         - name: offset
-          in: path
-          required: true
+          in: query
+          required: false
           schema:
-            type:
-              - integer
-              - "null"
+            type: integer
             format: int32
             minimum: 0
       responses:

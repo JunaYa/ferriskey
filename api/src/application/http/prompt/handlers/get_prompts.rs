@@ -12,12 +12,18 @@ use ferriskey_core::domain::prompt::value_objects::GetPromptsFilter;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
+#[into_params(parameter_in = Query)]
 pub struct GetPromptsQuery {
+    #[schema(example = "My Prompt")]
     pub name: Option<String>,
+    #[schema(example = "This is a description of my prompt")]
     pub description: Option<String>,
+    #[schema(example = false)]
     pub include_deleted: Option<bool>,
+    #[schema(example = 10)]
     pub limit: Option<u32>,
+    #[schema(example = 10)]
     pub offset: Option<u32>,
 }
 
