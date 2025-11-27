@@ -523,6 +523,128 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Role"
+  /realms/{realm_name}/files:
+    get:
+      tags:
+        - file
+      summary: List files in a realm
+      operationId: list_files
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          description: "Pagination offset (default: 0)"
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          description: "Pagination limit (default: 20, max: 100)"
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: mime_type
+          in: query
+          description: Filter by MIME type
+          required: false
+          schema:
+            type: string
+        - name: uploaded_by
+          in: query
+          description: Filter by uploader user ID
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Files listed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paginated_StoredObject"
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+  /realms/{realm_name}/files/uploads:
+    post:
+      tags:
+        - file
+      summary: Initiate a file upload
+      operationId: initiate_upload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitiateUploadRequest"
+        required: true
+      responses:
+        "200":
+          description: Upload initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadNegotiation"
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+        "413":
+          description: File too large
+  /realms/{realm_name}/files/{file_id}:
+    delete:
+      tags:
+        - file
+      summary: Delete a file
+      operationId: delete_file
+      responses:
+        "204":
+          description: File deleted successfully
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
+  /realms/{realm_name}/files/{file_id}/complete:
+    post:
+      tags:
+        - file
+      summary: Complete a file upload
+      operationId: complete_upload
+      responses:
+        "200":
+          description: Upload completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoredObject"
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
+  /realms/{realm_name}/files/{file_id}/download:
+    get:
+      tags:
+        - file
+      summary: Get a presigned download URL for a file
+      operationId: get_download_url
+      responses:
+        "200":
+          description: Download URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresignedUrl"
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
   /realms/{realm_name}/food-analysis:
     get:
       tags:
@@ -2456,6 +2578,28 @@ components:
         - password
         - client_credentials
         - refresh_token
+    InitiateUploadRequest:
+      type: object
+      required:
+        - filename
+        - mime_type
+        - size_bytes
+        - checksum_sha256
+      properties:
+        checksum_sha256:
+          type: string
+        filename:
+          type: string
+        metadata: {}
+        mime_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        use_presigned:
+          type:
+            - boolean
+            - "null"
     InputType:
       type: string
       enum:
@@ -2519,6 +2663,92 @@ components:
         label:
           type: string
         secret:
+          type: string
+    Paginated_StoredObject:
+      type: object
+      required:
+        - items
+        - offset
+        - limit
+        - count
+      properties:
+        count:
+          type: integer
+          format: int64
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - realm_id
+              - bucket
+              - object_key
+              - original_name
+              - mime_type
+              - size_bytes
+              - checksum_sha256
+              - metadata
+              - uploaded_by
+              - created_at
+              - updated_at
+            properties:
+              bucket:
+                type: string
+              checksum_sha256:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+              created_by:
+                type:
+                  - string
+                  - "null"
+                format: uuid
+              id:
+                type: string
+                format: uuid
+              metadata: {}
+              mime_type:
+                type: string
+              object_key:
+                type: string
+              original_name:
+                type: string
+              realm_id:
+                type: string
+                format: uuid
+              size_bytes:
+                type: integer
+                format: int64
+              updated_at:
+                type: string
+                format: date-time
+              updated_by:
+                type:
+                  - string
+                  - "null"
+                format: uuid
+              uploaded_by:
+                type: string
+                format: uuid
+        limit:
+          type: integer
+          format: int64
+        offset:
+          type: integer
+          format: int64
+    PresignedUrl:
+      type: object
+      required:
+        - url
+        - expires_in_seconds
+      properties:
+        expires_in_seconds:
+          type: integer
+          format: int64
+          minimum: 0
+        url:
           type: string
     Prompt:
       type: object
@@ -2858,6 +3088,61 @@ components:
           type: string
         secret:
           type: string
+    StoredObject:
+      type: object
+      required:
+        - id
+        - realm_id
+        - bucket
+        - object_key
+        - original_name
+        - mime_type
+        - size_bytes
+        - checksum_sha256
+        - metadata
+        - uploaded_by
+        - created_at
+        - updated_at
+      properties:
+        bucket:
+          type: string
+        checksum_sha256:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          type:
+            - string
+            - "null"
+          format: uuid
+        id:
+          type: string
+          format: uuid
+        metadata: {}
+        mime_type:
+          type: string
+        object_key:
+          type: string
+        original_name:
+          type: string
+        realm_id:
+          type: string
+          format: uuid
+        size_bytes:
+          type: integer
+          format: int64
+        updated_at:
+          type: string
+          format: date-time
+        updated_by:
+          type:
+            - string
+            - "null"
+          format: uuid
+        uploaded_by:
+          type: string
+          format: uuid
     TokenRequestValidator:
       type: object
       properties:
@@ -3055,6 +3340,38 @@ components:
             - "null"
           items:
             type: string
+    UploadNegotiation:
+      oneOf:
+        - type: object
+          required:
+            - object_id
+            - upload_url
+            - type
+          properties:
+            object_id:
+              type: string
+              format: uuid
+            type:
+              type: string
+              enum:
+                - direct
+            upload_url:
+              type: string
+        - type: object
+          required:
+            - object_id
+            - presigned_url
+            - type
+          properties:
+            object_id:
+              type: string
+              format: uuid
+            presigned_url:
+              $ref: "#/components/schemas/PresignedUrl"
+            type:
+              type: string
+              enum:
+                - presigned
     User:
       type: object
       required:

@@ -270,6 +270,14 @@ export namespace Schemas {
   export type GetUserRolesResponse = { data: Array<Role> };
   export type GetWebhooksResponse = { data: Array<Webhook> };
   export type GrantType = 'authorization_code' | 'password' | 'client_credentials' | 'refresh_token';
+  export type InitiateUploadRequest = {
+    checksum_sha256: string;
+    filename: string;
+    metadata?: unknown | undefined;
+    mime_type: string;
+    size_bytes: number;
+    use_presigned?: (boolean | null) | undefined;
+  };
   export type JwtToken = {
     access_token: string;
     expires_in: number;
@@ -278,6 +286,28 @@ export namespace Schemas {
     token_type: string;
   };
   export type OtpVerifyRequest = { code: string; label: string; secret: string };
+  export type Paginated_StoredObject = {
+    count: number;
+    items: Array<{
+      bucket: string;
+      checksum_sha256: string;
+      created_at: string;
+      created_by?: (string | null) | undefined;
+      id: string;
+      metadata: unknown;
+      mime_type: string;
+      object_key: string;
+      original_name: string;
+      realm_id: string;
+      size_bytes: number;
+      updated_at: string;
+      updated_by?: (string | null) | undefined;
+      uploaded_by: string;
+    }>;
+    limit: number;
+    offset: number;
+  };
+  export type PresignedUrl = { expires_in_seconds: number; url: string };
   export type RealmLoginSetting = {
     forgot_password_enabled: boolean;
     remember_me_enabled: boolean;
@@ -301,6 +331,22 @@ export namespace Schemas {
   export type ResetPasswordResponse = { message: string; realm_name: string; user_id: string };
   export type ResetPasswordValidator = Partial<{ credential_type: string; temporary: boolean; value: string }>;
   export type SetupOtpResponse = { issuer: string; otpauth_url: string; secret: string };
+  export type StoredObject = {
+    bucket: string;
+    checksum_sha256: string;
+    created_at: string;
+    created_by?: (string | null) | undefined;
+    id: string;
+    metadata: unknown;
+    mime_type: string;
+    object_key: string;
+    original_name: string;
+    realm_id: string;
+    size_bytes: number;
+    updated_at: string;
+    updated_by?: (string | null) | undefined;
+    uploaded_by: string;
+  };
   export type TokenRequestValidator = Partial<{
     client_id: string;
     client_secret: string | null;
@@ -348,6 +394,9 @@ export namespace Schemas {
     lastname: string;
     required_actions: Array<string> | null;
   }>;
+  export type UploadNegotiation =
+    | { object_id: string; type: 'direct'; upload_url: string }
+    | { object_id: string; presigned_url: PresignedUrl; type: 'presigned' };
   export type UserRealmsResponse = { data: Array<Realm> };
   export type UserResponse = { data: User };
   export type UsersResponse = { data: Array<User> };
@@ -534,6 +583,46 @@ export namespace Endpoints {
       body: Schemas.CreateRoleValidator;
     };
     response: Schemas.Role;
+  };
+  export type get_List_files = {
+    method: 'GET';
+    path: '/realms/{realm_name}/files';
+    requestFormat: 'json';
+    parameters: {
+      query: Partial<{ offset: number; limit: number; mime_type: string; uploaded_by: string }>;
+      path: { realm_name: string };
+    };
+    response: Schemas.Paginated_StoredObject;
+  };
+  export type post_Initiate_upload = {
+    method: 'POST';
+    path: '/realms/{realm_name}/files/uploads';
+    requestFormat: 'json';
+    parameters: {
+      body: Schemas.InitiateUploadRequest;
+    };
+    response: Schemas.UploadNegotiation;
+  };
+  export type delete_Delete_file = {
+    method: 'DELETE';
+    path: '/realms/{realm_name}/files/{file_id}';
+    requestFormat: 'json';
+    parameters: never;
+    response: unknown;
+  };
+  export type post_Complete_upload = {
+    method: 'POST';
+    path: '/realms/{realm_name}/files/{file_id}/complete';
+    requestFormat: 'json';
+    parameters: never;
+    response: Schemas.StoredObject;
+  };
+  export type get_Get_download_url = {
+    method: 'GET';
+    path: '/realms/{realm_name}/files/{file_id}/download';
+    requestFormat: 'json';
+    parameters: never;
+    response: Schemas.PresignedUrl;
   };
   export type get_Get_analysis_history = {
     method: 'GET';
@@ -967,6 +1056,8 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/clients': Endpoints.post_Create_client;
     '/realms/{realm_name}/clients/{client_id}/redirects': Endpoints.post_Create_redirect_uri;
     '/realms/{realm_name}/clients/{client_id}/roles': Endpoints.post_Create_role;
+    '/realms/{realm_name}/files/uploads': Endpoints.post_Initiate_upload;
+    '/realms/{realm_name}/files/{file_id}/complete': Endpoints.post_Complete_upload;
     '/realms/{realm_name}/food-analysis/image': Endpoints.post_Analyze_food_image;
     '/realms/{realm_name}/food-analysis/text': Endpoints.post_Analyze_food_text;
     '/realms/{realm_name}/login-actions/authenticate': Endpoints.post_Authenticate;
@@ -990,6 +1081,8 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/clients/{client_id}': Endpoints.get_Get_client;
     '/realms/{realm_name}/clients/{client_id}/redirects': Endpoints.get_Get_redirect_uris;
     '/realms/{realm_name}/clients/{client_id}/roles': Endpoints.get_Get_client_roles;
+    '/realms/{realm_name}/files': Endpoints.get_List_files;
+    '/realms/{realm_name}/files/{file_id}/download': Endpoints.get_Get_download_url;
     '/realms/{realm_name}/food-analysis': Endpoints.get_Get_analysis_history;
     '/realms/{realm_name}/food-analysis/{request_id}/result': Endpoints.get_Get_analysis_result;
     '/realms/{realm_name}/login-actions/setup-otp': Endpoints.get_Setup_otp;
@@ -1022,6 +1115,7 @@ export type EndpointByMethod = {
     '/realms/{name}': Endpoints.delete_Delete_realm;
     '/realms/{realm_name}/clients/{client_id}': Endpoints.delete_Delete_client;
     '/realms/{realm_name}/clients/{client_id}/redirects/{uri_id}': Endpoints.delete_Delete_redirect_uri;
+    '/realms/{realm_name}/files/{file_id}': Endpoints.delete_Delete_file;
     '/realms/{realm_name}/prompts/{prompt_id}': Endpoints.delete_Delete_prompt;
     '/realms/{realm_name}/roles/{role_id}': Endpoints.delete_Delete_role;
     '/realms/{realm_name}/users/bulk': Endpoints.delete_Bulk_delete_user;
