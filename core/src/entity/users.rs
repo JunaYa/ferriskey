@@ -61,6 +61,7 @@ pub enum Relation {
     FoodAnalysisRequests,
     Realms,
     RefreshTokens,
+    StoredObjects,
     UserRequiredActions,
     UserRole,
     UserSessions,
@@ -102,6 +103,7 @@ impl RelationTrait for Relation {
                 .to(super::realms::Column::Id)
                 .into(),
             Self::RefreshTokens => Entity::has_many(super::refresh_tokens::Entity).into(),
+            Self::StoredObjects => Entity::has_many(super::stored_objects::Entity).into(),
             Self::UserRequiredActions => {
                 Entity::has_many(super::user_required_actions::Entity).into()
             }
@@ -144,6 +146,12 @@ impl Related<super::realms::Entity> for Entity {
 impl Related<super::refresh_tokens::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::RefreshTokens.def()
+    }
+}
+
+impl Related<super::stored_objects::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::StoredObjects.def()
     }
 }
 

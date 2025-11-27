@@ -53,6 +53,8 @@ pub struct Args {
     #[command(flatten)]
     pub log: LogArgs,
     #[command(flatten)]
+    pub object_storage: ObjectStorageArgs,
+    #[command(flatten)]
     pub server: ServerArgs,
     #[arg(
         long,
@@ -71,6 +73,7 @@ impl Default for Args {
             env: Environment::Development,
             llm: LLMArgs::default(),
             log: LogArgs::default(),
+            object_storage: ObjectStorageArgs::default(),
             server: ServerArgs::default(),
             webapp_url: "http://localhost:5555".to_string(),
         }
@@ -196,6 +199,71 @@ impl Default for LLMArgs {
         Self {
             gemini_api_key: String::new(),
             gemini_model: "gemini-2.0-flash-exp".to_string(),
+        }
+    }
+}
+
+#[derive(clap::Args, Debug, Clone)]
+pub struct ObjectStorageArgs {
+    #[arg(
+        long = "object-storage-endpoint",
+        env = "OBJECT_STORAGE_ENDPOINT",
+        default_value = "http://localhost:9000",
+        name = "OBJECT_STORAGE_ENDPOINT",
+        long_help = "The object storage endpoint URL"
+    )]
+    pub endpoint: String,
+    #[arg(
+        long = "object-storage-region",
+        env = "OBJECT_STORAGE_REGION",
+        default_value = "us-east-1",
+        name = "OBJECT_STORAGE_REGION",
+        long_help = "The object storage region"
+    )]
+    pub region: String,
+    #[arg(
+        long = "object-storage-access-key",
+        env = "OBJECT_STORAGE_ACCESS_KEY",
+        default_value = "ferriskey",
+        name = "OBJECT_STORAGE_ACCESS_KEY",
+        long_help = "The object storage access key"
+    )]
+    pub access_key: String,
+    #[arg(
+        long = "object-storage-secret-key",
+        env = "OBJECT_STORAGE_SECRET_KEY",
+        default_value = "ferriskeysecret",
+        name = "OBJECT_STORAGE_SECRET_KEY",
+        long_help = "The object storage secret key"
+    )]
+    pub secret_key: String,
+    #[arg(
+        long = "object-storage-bucket-prefix",
+        env = "OBJECT_STORAGE_BUCKET_PREFIX",
+        default_value = "ferriskey",
+        name = "OBJECT_STORAGE_BUCKET_PREFIX",
+        long_help = "The object storage bucket prefix"
+    )]
+    pub bucket_prefix: String,
+    #[arg(
+        long = "object-storage-use-ssl",
+        env = "OBJECT_STORAGE_USE_SSL",
+        default_value = "false",
+        name = "OBJECT_STORAGE_USE_SSL",
+        long_help = "Whether to use SSL for object storage connections"
+    )]
+    pub use_ssl: bool,
+}
+
+impl Default for ObjectStorageArgs {
+    fn default() -> Self {
+        Self {
+            endpoint: "http://localhost:9000".to_string(),
+            region: "us-east-1".to_string(),
+            access_key: "ferriskey".to_string(),
+            secret_key: "ferriskeysecret".to_string(),
+            bucket_prefix: "ferriskey".to_string(),
+            use_ssl: false,
         }
     }
 }
@@ -340,6 +408,14 @@ impl From<Args> for FerriskeyConfig {
             llm: ferriskey_core::domain::common::LLMConfig {
                 gemini_api_key: value.llm.gemini_api_key,
                 gemini_model: value.llm.gemini_model,
+            },
+            object_storage: ferriskey_core::domain::common::ObjectStorageConfig {
+                endpoint: value.object_storage.endpoint,
+                region: value.object_storage.region,
+                access_key: value.object_storage.access_key,
+                secret_key: value.object_storage.secret_key,
+                bucket_prefix: value.object_storage.bucket_prefix,
+                use_ssl: value.object_storage.use_ssl,
             },
         }
     }

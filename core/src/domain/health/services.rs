@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use crate::domain::storage::ports::{ObjectStoragePort, StoredObjectRepository};
+
 use crate::domain::{
     authentication::ports::AuthSessionRepository,
     client::ports::{ClientRepository, RedirectUriRepository},
@@ -19,8 +22,9 @@ use crate::domain::{
     webhook::ports::WebhookRepository,
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> HealthCheckService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
+    HealthCheckService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -41,6 +45,10 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     async fn readness(&self) -> Result<DatabaseHealthStatus, CoreError> {
         self.health_check_repository.readness().await

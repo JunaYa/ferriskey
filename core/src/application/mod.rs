@@ -9,6 +9,7 @@ use crate::{
         food_analysis::repositories::food_analysis_repository::PostgresFoodAnalysisRepository,
         health::repositories::PostgresHealthCheckRepository,
         llm::gemini_client::GeminiLLMClient,
+        object_storage::MinioObjectStorage,
         prompt::repositories::prompt_repository::PostgresPromptRepository,
         realm::repositories::realm_postgres_repository::PostgresRealmRepository,
         repositories::{
@@ -21,6 +22,7 @@ use crate::{
         },
         role::repositories::role_postgres_repository::PostgresRoleRepository,
         seawatch::repositories::security_event_postgres_repository::PostgresSecurityEventRepository,
+        storage::PostgresStoredObjectRepository,
         user::{
             repositories::{
                 user_required_action_repository::PostgresUserRequiredActionRepository,
@@ -52,6 +54,8 @@ pub type FerrisKeyService = Service<
     PostgresPromptRepository,
     PostgresFoodAnalysisRepository,
     GeminiLLMClient,
+    MinioObjectStorage,
+    PostgresStoredObjectRepository,
 >;
 
 pub async fn create_service(config: FerriskeyConfig) -> Result<FerrisKeyService, CoreError> {
@@ -93,6 +97,18 @@ pub async fn create_service(config: FerriskeyConfig) -> Result<FerrisKeyService,
         config.llm.gemini_model.clone(),
     );
 
+    // Initialize object storage
+    let object_storage_config = crate::infrastructure::object_storage::ObjectStorageConfig {
+        endpoint: config.object_storage.endpoint.clone(),
+        region: config.object_storage.region.clone(),
+        access_key: config.object_storage.access_key.clone(),
+        secret_key: config.object_storage.secret_key.clone(),
+        bucket_prefix: config.object_storage.bucket_prefix.clone(),
+        use_ssl: config.object_storage.use_ssl,
+    };
+    let object_storage = MinioObjectStorage::new(object_storage_config).await;
+    let stored_object_repository = PostgresStoredObjectRepository::new(postgres.get_db());
+
     Ok(Service::new(
         realm,
         client,
@@ -113,5 +129,7 @@ pub async fn create_service(config: FerriskeyConfig) -> Result<FerrisKeyService,
         prompt,
         food_analysis,
         llm_client,
+        object_storage,
+        stored_object_repository,
     ))
 }

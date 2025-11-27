@@ -15,6 +15,17 @@ pub struct AppConfig {
 pub struct FerriskeyConfig {
     pub database: DatabaseConfig,
     pub llm: LLMConfig,
+    pub object_storage: ObjectStorageConfig,
+}
+
+#[derive(Clone, Debug)]
+pub struct ObjectStorageConfig {
+    pub endpoint: String,
+    pub region: String,
+    pub access_key: String,
+    pub secret_key: String,
+    pub bucket_prefix: String,
+    pub use_ssl: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -45,10 +56,10 @@ pub fn generate_uuid_v7() -> Uuid {
     Uuid::new_v7(timestamp)
 }
 
-pub fn generate_random_string() -> String {
+pub fn generate_random_string(length: usize) -> String {
     rand::thread_rng()
         .sample_iter(&Alphanumeric)
-        .take(16)
+        .take(length)
         .map(char::from)
         .collect()
 }

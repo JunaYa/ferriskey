@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use crate::domain::storage::ports::{ObjectStoragePort, StoredObjectRepository};
+
 use uuid::Uuid;
 
 use crate::domain::{
@@ -30,8 +33,9 @@ use crate::domain::{
     webhook::ports::WebhookRepository,
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> AuthenticatePort
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
+    AuthenticatePort
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -52,6 +56,8 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     async fn determine_next_step(
         &self,
@@ -90,7 +96,7 @@ where
         session_code: Uuid,
         auth_session: AuthSession,
     ) -> Result<AuthenticateOutput, CoreError> {
-        let authorization_code = generate_random_string();
+        let authorization_code = generate_random_string(16);
 
         self.auth_session_repository
             .update_code_and_user_id(session_code, authorization_code.clone(), user_id)
@@ -267,7 +273,7 @@ where
             .map_err(|_| CoreError::InternalServerError)?;
 
         Ok(AuthenticationResult {
-            code: Some(generate_random_string()),
+            code: Some(generate_random_string(16)),
             required_actions: Vec::new(),
             user_id: user.id,
             token: None,

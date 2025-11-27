@@ -78,7 +78,7 @@ impl Client {
             id: Uuid::new_v7(timestamp),
             enabled: true,
             client_id: client_id.clone(),
-            secret: Some(generate_random_string()),
+            secret: Some(generate_random_string(16)),
             realm_id,
             protocol: "openid-connect".to_string(),
             public_client: false,

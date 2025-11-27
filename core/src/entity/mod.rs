@@ -15,6 +15,7 @@ pub mod redirect_uris;
 pub mod refresh_tokens;
 pub mod roles;
 pub mod security_events;
+pub mod stored_objects;
 pub mod user_required_actions;
 pub mod user_role;
 pub mod user_sessions;

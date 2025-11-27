@@ -11,6 +11,7 @@ pub mod realm;
 pub mod role;
 pub mod seawatch;
 pub mod session;
+pub mod storage;
 pub mod trident;
 pub mod user;
 pub mod webhook;

@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use crate::domain::storage::ports::{ObjectStoragePort, StoredObjectRepository};
+
 use crate::domain::session::{
     entities::{SessionError, UserSession},
     ports::{UserSessionRepository, UserSessionService},

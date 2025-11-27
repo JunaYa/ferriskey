@@ -1,8 +1,9 @@
 use crate::application::http::{
     authentication::router::AuthenticationApiDoc, client::router::ClientApiDoc,
-    food_analysis::router::FoodAnalysisApiDoc, prompt::router::PromptApiDoc,
-    realm::router::RealmApiDoc, role::router::RoleApiDoc, seawatch::router::SeawatchApiDoc,
-    trident::router::TridentApiDoc, user::router::UserApiDoc, webhook::router::WebhookApiDoc,
+    file::router::FileApiDoc, food_analysis::router::FoodAnalysisApiDoc,
+    prompt::router::PromptApiDoc, realm::router::RealmApiDoc, role::router::RoleApiDoc,
+    seawatch::router::SeawatchApiDoc, trident::router::TridentApiDoc, user::router::UserApiDoc,
+    webhook::router::WebhookApiDoc,
 };
 use utoipa::OpenApi;
 
@@ -22,6 +23,7 @@ use utoipa::OpenApi;
         (path = "/realms/{realm_name}", api = SeawatchApiDoc),
         (path = "/realms/{realm_name}/prompts", api = PromptApiDoc),
         (path = "/realms/{realm_name}/food-analysis", api = FoodAnalysisApiDoc),
+        (path = "/realms/{realm_name}/files", api = FileApiDoc),
     )
 )]
 pub struct ApiDoc;

@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use crate::domain::storage::ports::{ObjectStoragePort, StoredObjectRepository};
+
 use std::collections::HashSet;
 
 use crate::domain::{
@@ -36,8 +39,8 @@ use crate::domain::{
     },
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> RealmService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO> RealmService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -58,6 +61,10 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     async fn create_realm(
         &self,
@@ -164,7 +171,7 @@ where
                 realm_id: realm_master.id,
                 name: client_id.clone(),
                 client_id,
-                secret: Some(generate_random_string()),
+                secret: Some(generate_random_string(16)),
                 enabled: true,
                 protocol: "openid-connect".to_string(),
                 public_client: true,

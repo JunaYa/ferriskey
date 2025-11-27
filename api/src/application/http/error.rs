@@ -108,6 +108,18 @@ impl From<CoreError> for ApiError {
             CoreError::ExternalServiceError(msg) => {
                 Self::InternalServerError(format!("External service error: {}", msg))
             }
+            CoreError::InvalidPagination => {
+                Self::BadRequest("Invalid pagination parameters".to_string())
+            }
+            CoreError::FileTooLarge => {
+                Self::BadRequest("File size exceeds maximum allowed".to_string())
+            }
+            CoreError::InvalidMimeType => {
+                Self::BadRequest("Invalid or unsupported file MIME type".to_string())
+            }
+            CoreError::ObjectStorageError(msg) => {
+                Self::InternalServerError(format!("Object storage error: {}", msg))
+            }
         }
     }
 }

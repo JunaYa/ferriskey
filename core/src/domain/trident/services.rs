@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use crate::domain::storage::ports::{ObjectStoragePort, StoredObjectRepository};
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::future::try_join_all;
@@ -132,8 +135,8 @@ fn decode_string(code: String, format: RecoveryCodeFormat) -> Result<MfaRecovery
     }
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> TridentService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO> TridentService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -154,6 +157,10 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     async fn generate_recovery_code(
         &self,
@@ -285,7 +292,7 @@ where
                 CoreError::InternalServerError
             })?;
 
-        let authorization_code = generate_random_string();
+        let authorization_code = generate_random_string(16);
 
         self.auth_session_repository
             .update_code_and_user_id(session_code, authorization_code.clone(), user.id)
@@ -347,7 +354,7 @@ where
             ));
         }
 
-        let authorization_code = generate_random_string();
+        let authorization_code = generate_random_string(16);
 
         self.auth_session_repository
             .update_code_and_user_id(session_code, authorization_code.clone(), user.id)

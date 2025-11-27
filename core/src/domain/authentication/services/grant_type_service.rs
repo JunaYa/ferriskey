@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use crate::domain::storage::ports::{ObjectStoragePort, StoredObjectRepository};
+
 use uuid::Uuid;
 
 use crate::domain::{
@@ -35,8 +38,9 @@ pub struct GenerateTokenInput {
     pub realm_id: Uuid,
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> GrantTypeService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
+    GrantTypeService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -57,6 +61,8 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     async fn authenticate_with_grant_type(
         &self,
@@ -84,8 +90,9 @@ where
     }
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> GrantTypeStrategy
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
+    GrantTypeStrategy
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -106,6 +113,8 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     async fn authorization_code(&self, params: GrantTypeParams) -> Result<JwtToken, CoreError> {
         let code = params.code.ok_or(CoreError::InternalServerError)?;

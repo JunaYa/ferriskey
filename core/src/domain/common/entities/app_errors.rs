@@ -148,4 +148,16 @@ pub enum CoreError {
 
     #[error("Failed to parse LLM response: {0}")]
     ExternalServiceError(String),
+
+    #[error("Invalid pagination parameters")]
+    InvalidPagination,
+
+    #[error("File too large (max 50 MB)")]
+    FileTooLarge,
+
+    #[error("Invalid MIME type")]
+    InvalidMimeType,
+
+    #[error("Object storage error: {0}")]
+    ObjectStorageError(String),
 }

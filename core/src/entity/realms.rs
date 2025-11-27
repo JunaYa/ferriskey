@@ -49,6 +49,7 @@ pub enum Relation {
     RealmSettings,
     Roles,
     SecurityEvents,
+    StoredObjects,
     UserSessions,
     Users,
     Webhooks,
@@ -79,6 +80,7 @@ impl RelationTrait for Relation {
             Self::RealmSettings => Entity::has_many(super::realm_settings::Entity).into(),
             Self::Roles => Entity::has_many(super::roles::Entity).into(),
             Self::SecurityEvents => Entity::has_many(super::security_events::Entity).into(),
+            Self::StoredObjects => Entity::has_many(super::stored_objects::Entity).into(),
             Self::UserSessions => Entity::has_many(super::user_sessions::Entity).into(),
             Self::Users => Entity::has_many(super::users::Entity).into(),
             Self::Webhooks => Entity::has_many(super::webhooks::Entity).into(),
@@ -131,6 +133,12 @@ impl Related<super::roles::Entity> for Entity {
 impl Related<super::security_events::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::SecurityEvents.def()
+    }
+}
+
+impl Related<super::stored_objects::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::StoredObjects.def()
     }
 }
 

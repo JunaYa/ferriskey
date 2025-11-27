@@ -6,6 +6,7 @@ use crate::domain::{
     common::entities::app_errors::CoreError,
     realm::entities::Realm,
     role::entities::{Role, permission::Permissions},
+    storage::policies::FilePolicy,
     user::{
         entities::User,
         ports::{UserRepository, UserRoleRepository},
@@ -208,6 +209,46 @@ where
 
     fn is_cross_realm_access(&self, user_realm: &Realm, target_realm: &Realm) -> bool {
         user_realm.name == "master" && user_realm.name != target_realm.name
+    }
+}
+
+impl<U, C, UR> FilePolicy for FerriskeyPolicy<U, C, UR>
+where
+    U: UserRepository,
+    C: ClientRepository,
+    UR: UserRoleRepository,
+{
+    async fn can_upload(&self, identity: &Identity, realm: &Realm) -> Result<bool, CoreError> {
+        let user = self.get_user_from_identity(identity).await?;
+
+        // Check if user can access realm
+        if !self.can_access_realm(user.realm.as_ref().unwrap(), realm) {
+            return Ok(false);
+        }
+
+        Ok(true)
+    }
+
+    async fn can_view(&self, identity: &Identity, realm: &Realm) -> Result<bool, CoreError> {
+        let user = self.get_user_from_identity(identity).await?;
+
+        // Check if user can access realm
+        if !self.can_access_realm(user.realm.as_ref().unwrap(), realm) {
+            return Ok(false);
+        }
+
+        Ok(true)
+    }
+
+    async fn can_delete(&self, identity: &Identity, realm: &Realm) -> Result<bool, CoreError> {
+        let user = self.get_user_from_identity(identity).await?;
+
+        // Check if user can access realm
+        if !self.can_access_realm(user.realm.as_ref().unwrap(), realm) {
+            return Ok(false);
+        }
+
+        Ok(true)
     }
 }
 

@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use crate::domain::storage::ports::{ObjectStoragePort, StoredObjectRepository};
+
 use std::sync::Arc;
 
 use chrono::{TimeZone, Utc};
@@ -41,7 +44,7 @@ use crate::domain::{
 };
 
 #[derive(Clone)]
-pub struct Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+pub struct Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -62,8 +65,8 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
-    FA: FoodAnalysisRepository,
-    LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     pub(crate) realm_repository: Arc<R>,
     pub(crate) client_repository: Arc<C>,
@@ -84,12 +87,14 @@ where
     pub(crate) prompt_repository: Arc<PR>,
     pub(crate) food_analysis_repository: Arc<FA>,
     pub(crate) llm_client: Arc<LLM>,
+    pub(crate) object_storage: Arc<OS>,
+    pub(crate) stored_object_repository: Arc<SO>,
 
     pub(crate) policy: FerriskeyPolicy<U, C, UR>,
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
-    Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
+    Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -110,8 +115,8 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
-    FA: FoodAnalysisRepository,
-    LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -134,6 +139,8 @@ where
         prompt_repository: PR,
         food_analysis_repository: FA,
         llm_client: LLM,
+        object_storage: OS,
+        stored_object_repository: SO,
     ) -> Self {
         let user_repo_arc = Arc::new(user_repository);
         let client_repo_arc = Arc::new(client_repository);
@@ -165,6 +172,8 @@ where
             prompt_repository: Arc::new(prompt_repository),
             food_analysis_repository: Arc::new(food_analysis_repository),
             llm_client: Arc::new(llm_client),
+            object_storage: Arc::new(object_storage),
+            stored_object_repository: Arc::new(stored_object_repository),
             policy,
         }
     }
@@ -317,8 +326,8 @@ where
     }
 }
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> CoreService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO> CoreService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -339,6 +348,8 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     async fn initialize_application(
         &self,
@@ -422,7 +433,7 @@ where
                         service_account_enabled: false,
                         direct_access_grants_enabled: false,
                         client_type: "confidential".to_string(),
-                        secret: Some(generate_random_string()),
+                        secret: Some(generate_random_string(16)),
                     })
                     .await
                     .map_err(|_| CoreError::CreateClientError)?;
@@ -459,7 +470,7 @@ where
                         service_account_enabled: false,
                         direct_access_grants_enabled: true,
                         client_type: "confidential".to_string(),
-                        secret: Some(generate_random_string()),
+                        secret: Some(generate_random_string(16)),
                     })
                     .await
                     .map_err(|_| CoreError::CreateClientError)?;
@@ -653,6 +664,8 @@ pub mod tests {
         webhook::ports::MockWebhookRepository,
     };
 
+    use crate::domain::storage::ports::{MockObjectStoragePort, MockStoredObjectRepository};
+
     pub type TestService = Service<
         MockRealmRepository,
         MockClientRepository,
@@ -673,6 +686,8 @@ pub mod tests {
         MockPromptRepository,
         MockFoodAnalysisRepository,
         MockLLMClient,
+        MockObjectStoragePort,
+        MockStoredObjectRepository,
     >;
 
     /// Macros pour créer des mocks async avec clonage automatique
@@ -741,6 +756,8 @@ pub mod tests {
         prompt_repo: MockPromptRepository,
         food_analysis_repo: MockFoodAnalysisRepository,
         llm_client: MockLLMClient,
+        object_storage: MockObjectStoragePort,
+        stored_object_repo: MockStoredObjectRepository,
     }
 
     impl Default for ServiceTestBuilder {
@@ -771,6 +788,8 @@ pub mod tests {
                 prompt_repo: MockPromptRepository::new(),
                 food_analysis_repo: MockFoodAnalysisRepository::new(),
                 llm_client: MockLLMClient::new(),
+                object_storage: MockObjectStoragePort::new(),
+                stored_object_repo: MockStoredObjectRepository::new(),
             }
         }
 
@@ -1224,6 +1243,8 @@ pub mod tests {
                 self.prompt_repo,
                 self.food_analysis_repo,
                 self.llm_client,
+                self.object_storage,
+                self.stored_object_repo,
             )
         }
     }

@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use crate::domain::storage::ports::{ObjectStoragePort, StoredObjectRepository};
+
 use crate::domain::{
     authentication::{ports::AuthSessionRepository, value_objects::Identity},
     client::{
@@ -35,8 +38,8 @@ use crate::domain::{
     },
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> ClientService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO> ClientService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -57,6 +60,10 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     async fn create_client(
         &self,
@@ -77,7 +84,7 @@ where
             "insufficient permissions",
         )?;
 
-        let secret = (!input.public_client).then(generate_random_string);
+        let secret = (!input.public_client).then(|| generate_random_string(32));
 
         let client = self
             .client_repository

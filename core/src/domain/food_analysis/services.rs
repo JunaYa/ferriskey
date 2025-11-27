@@ -1,9 +1,9 @@
+#[allow(unused_imports)]
+use crate::domain::storage::ports::{ObjectStoragePort, StoredObjectRepository};
+
 use crate::domain::{
-    authentication::ports::AuthSessionRepository, client::ports::RedirectUriRepository,
-};
-use crate::domain::{
-    authentication::value_objects::Identity,
-    client::ports::ClientRepository,
+    authentication::{ports::AuthSessionRepository, value_objects::Identity},
+    client::ports::{ClientRepository, RedirectUriRepository},
     common::{entities::app_errors::CoreError, policies::ensure_policy, services::Service},
     credential::ports::CredentialRepository,
     crypto::ports::HasherRepository,
@@ -26,8 +26,9 @@ use crate::domain::{
     webhook::ports::WebhookRepository,
 };
 
-impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM> FoodAnalysisService
-    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM>
+impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
+    FoodAnalysisService
+    for Service<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO>
 where
     R: RealmRepository,
     C: ClientRepository,
@@ -48,6 +49,8 @@ where
     PR: PromptRepository,
     FA: FoodAnalysisRepository,
     LLM: LLMClient,
+    OS: ObjectStoragePort,
+    SO: StoredObjectRepository,
 {
     async fn analyze_food(
         &self,
