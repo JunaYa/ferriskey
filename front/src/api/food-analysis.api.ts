@@ -65,25 +65,12 @@ export const useAnalyzeFoodImage = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: AnalyzeFoodImageMutationData) => {
-      const response = await fetch(
-        `/realms/${data.path.realm_name}/food-analysis/image`,
-        {
-          method: 'POST',
-          body: data.body,
-          headers: {
-            // Don't set Content-Type, let browser set it with boundary for multipart
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          },
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze food')
-      }
-
-      return response.json()
-    },
+    ...window.tanstackApi
+      .mutation('post', '/realms/{realm_name}/food-analysis/image', async (response) => {
+        const data = await response.json()
+        return data as Schemas.AnalyzeFoodResponse
+      })
+      .mutationOptions,
     onSuccess: async (_data, variables) => {
       const queryKey = window.tanstackApi
         .get('/realms/{realm_name}/food-analysis', {

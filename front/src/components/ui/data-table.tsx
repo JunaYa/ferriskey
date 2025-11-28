@@ -52,6 +52,7 @@ export type DataTableProps<T> = {
   pageSize?: number
   onDeleteSelected?: (items: T[]) => void
   onRowClick?: (item: T) => void
+  setOffset?: (offset: number) => void
 }
 
 export function DataTable<T extends { id: string }>({
@@ -71,6 +72,7 @@ export function DataTable<T extends { id: string }>({
   pageSize = 10,
   onDeleteSelected,
   onRowClick,
+  setOffset,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('')
   const [selectedItems, setSelectedItems] = useState<T[]>([])
@@ -92,9 +94,13 @@ export function DataTable<T extends { id: string }>({
   const paginatedData = useMemo(() => {
     if (!enablePagination) return filteredData
 
+    if (setOffset) {
+      setOffset((currentPage - 1) * pageSize)
+    }
+
     const start = (currentPage - 1) * pageSize
     return filteredData.slice(start, start + pageSize)
-  }, [filteredData, currentPage, pageSize, enablePagination])
+  }, [filteredData, currentPage, pageSize, enablePagination, setOffset])
 
   const handleSelectItem = (item: T) => {
     const isSelected = selectedItems.some((i) => i.id === item.id)

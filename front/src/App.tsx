@@ -19,6 +19,7 @@ import { BasicSpinner } from './components/ui/spinner'
 import { fetcher } from './api'
 import PageSeawatch from './pages/seawatch/page-seawatch'
 import PageFoodAnalysis from './pages/food-analysis/page-food-analysis'
+import PageFile from './pages/file/page-file'
 
 declare global {
   interface Window {
@@ -157,6 +158,7 @@ function App() {
             <Route path='realm-settings/*' element={<PageRealm />} />
             <Route path='seawatch/*' element={<PageSeawatch />} />
             <Route path='food-analysis/*' element={<PageFoodAnalysis />} />
+            <Route path='files/*' element={<PageFile />} />
           </Route>
         </Route>
 

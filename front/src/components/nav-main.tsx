@@ -7,10 +7,11 @@ import {
 } from '@/components/ui/sidebar'
 import { REALM_OVERVIEW_URL, REALM_URL, RouterParams } from '@/routes/router'
 import { CLIENTS_URL, OVERVIEW_URL } from '@/routes/sub-router/client.router'
-import { BookOpen, Bot, SquareAsterisk, UtensilsCrossed } from 'lucide-react'
+import { BookOpen, Bot, SquareAsterisk, UtensilsCrossed, Folder } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router'
 import { ROLE_OVERVIEW_URL, ROLES_URL } from '../routes/sub-router/role.router'
 import { USER_OVERVIEW_URL, USERS_URL } from '../routes/sub-router/user.router'
+import { FILES_URL, FILE_OVERVIEW_URL } from '../routes/sub-router/file.router'
 
 export function NavMain() {
   const { realm_name } = useParams<RouterParams>()
@@ -50,6 +51,13 @@ export function NavMain() {
             {/* icon */}
             <UtensilsCrossed />
             <span>Food Analysis</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem onClick={() => handleClick(`${FILES_URL(realm_name)}${FILE_OVERVIEW_URL}`)}>
+          <SidebarMenuButton className='flex items-center gap-2 cursor-pointer'>
+            {/* icon */}
+            <Folder />
+            <span>File Manage</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
