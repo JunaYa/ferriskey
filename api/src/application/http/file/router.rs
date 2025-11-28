@@ -1,5 +1,7 @@
 use axum::{
-    Router, middleware,
+    Router,
+    extract::DefaultBodyLimit,
+    middleware,
     routing::{delete, get, post},
 };
 use utoipa::OpenApi;
@@ -12,6 +14,7 @@ use super::handlers::{
     get_download_url::{__path_get_download_url, get_download_url},
     initiate_upload::{__path_initiate_upload, initiate_upload},
     list_files::{__path_list_files, list_files},
+    upload_file::{__path_upload_file, upload_file},
 };
 
 #[derive(OpenApi)]
@@ -20,7 +23,8 @@ use super::handlers::{
     complete_upload,
     list_files,
     get_download_url,
-    delete_file
+    delete_file,
+    upload_file
 ))]
 pub struct FileApiDoc;
 
@@ -32,6 +36,13 @@ pub fn file_routes(state: AppState) -> Router<AppState> {
                 state.args.server.root_path
             ),
             post(initiate_upload),
+        )
+        .route(
+            &format!(
+                "{}/realms/{{realm_name}}/files/upload",
+                state.args.server.root_path
+            ),
+            post(upload_file),
         )
         .route(
             &format!(
@@ -62,4 +73,6 @@ pub fn file_routes(state: AppState) -> Router<AppState> {
             delete(delete_file),
         )
         .layer(middleware::from_fn_with_state(state.clone(), auth))
+        // Limit request body size to 50 MB for file uploads
+        .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
 }

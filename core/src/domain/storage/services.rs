@@ -1,3 +1,4 @@
+use sha2::{Digest, Sha256};
 use std::future::Future;
 use std::time::Duration;
 use tracing::instrument;
@@ -72,6 +73,17 @@ pub trait FileService: Send + Sync {
         identity: Identity,
         object_id: Uuid,
     ) -> impl Future<Output = Result<(), CoreError>> + Send;
+
+    /// Upload a file directly (multipart form)
+    fn upload_file_direct(
+        &self,
+        identity: Identity,
+        realm_name: String,
+        filename: String,
+        mime_type: String,
+        file_data: bytes::Bytes,
+        metadata: serde_json::Value,
+    ) -> impl Future<Output = Result<StoredObject, CoreError>> + Send;
 }
 
 impl<R, C, U, CR, H, AS, RU, RO, KS, UR, URA, HC, W, RT, RC, SE, PR, FA, LLM, OS, SO> FileService
@@ -355,5 +367,83 @@ where
         );
 
         Ok(())
+    }
+
+    #[instrument(skip(self, file_data), fields(realm_name = %realm_name, filename = %filename))]
+    async fn upload_file_direct(
+        &self,
+        identity: Identity,
+        realm_name: String,
+        filename: String,
+        mime_type: String,
+        file_data: bytes::Bytes,
+        metadata: serde_json::Value,
+    ) -> Result<StoredObject, CoreError> {
+        let size_bytes = file_data.len() as i64;
+
+        // Validate file size
+        if size_bytes > 52_428_800 {
+            // 50 MB
+            return Err(CoreError::FileTooLarge);
+        }
+
+        // Calculate SHA256 checksum
+        let mut hasher = Sha256::new();
+        hasher.update(&file_data);
+        let checksum_sha256 = format!("{:x}", hasher.finalize());
+
+        // Get realm
+        let realm = self
+            .realm_repository
+            .get_by_name(realm_name.clone())
+            .await
+            .map_err(|_| CoreError::InvalidRealm)?
+            .ok_or(CoreError::InvalidRealm)?;
+
+        // Check permissions
+        ensure_policy(
+            self.policy.can_upload(&identity, &realm).await,
+            "insufficient permissions to upload files",
+        )?;
+
+        // Generate object key
+        let object_key = format!("{}/{}/{}", realm.id, generate_random_string(16), filename);
+
+        let bucket = format!("ferriskey-{}", realm.name);
+
+        // Create metadata record
+        let create_input = CreateStoredObject {
+            realm_id: realm.id,
+            bucket: bucket.clone(),
+            object_key: object_key.clone(),
+            original_name: filename.clone(),
+            mime_type: mime_type.clone(),
+            size_bytes,
+            checksum_sha256: checksum_sha256.clone(),
+            metadata,
+            uploaded_by: identity.id(),
+        };
+
+        let stored_object = self.stored_object_repository.create(create_input).await?;
+
+        tracing::info!(
+            object_id = %stored_object.id,
+            bucket = %bucket,
+            object_key = %object_key,
+            size = size_bytes,
+            "Uploading file directly to storage"
+        );
+
+        // Upload to MinIO
+        self.object_storage
+            .put_object(&bucket, &object_key, file_data, &mime_type)
+            .await?;
+
+        tracing::info!(
+            object_id = %stored_object.id,
+            "File uploaded successfully"
+        );
+
+        Ok(stored_object)
     }
 }

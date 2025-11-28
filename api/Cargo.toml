@@ -8,6 +8,7 @@ edition.workspace = true
 [dependencies]
 ferriskey-core = { path = "../core" }
 anyhow = "1.0.97"
+bytes = "1.5"
 axum = { version = "0.8.1", features = ["multipart"] }
 axum-cookie = "0.2.3"
 axum-extra = { version = "0.10.0", features = [
