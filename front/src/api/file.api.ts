@@ -38,7 +38,7 @@ export interface UploadFileMutationData {
   path: {
     realm_name: string
   }
-  file: File
+  body: FormData
 }
 
 // List files with pagination and filters
@@ -124,31 +124,12 @@ export const useUploadFile = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (variables: UploadFileMutationData) => {
-      const formData = new FormData()
-      formData.append('file', variables.file)
-
-      const url = `/realms/${variables.path.realm_name}/files/upload`
-      const accessToken = (await import('@/store/auth.store')).authStore.getState().accessToken
-
-      const headers = new Headers()
-      if (accessToken) {
-        headers.set('Authorization', `Bearer ${accessToken}`)
-      }
-
-      const response = await fetch(url, {
-        method: 'POST',
-        body: formData,
-        headers,
+    ...window.tanstackApi
+      .mutation('post', '/realms/{realm_name}/files/upload', async (response) => {
+        const data = await response.json()
+        return data as Schemas.StoredObject
       })
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      return data as Schemas.StoredObject
-    },
+      .mutationOptions,
     onSuccess: async (_data, variables) => {
       // Invalidate file list
       const queryKey = window.tanstackApi

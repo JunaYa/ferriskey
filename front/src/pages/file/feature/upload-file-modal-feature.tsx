@@ -47,12 +47,15 @@ export default function UploadFileModalFeature({ open, setOpen }: Props) {
 
     // Use direct upload (simpler, recommended for smaller files)
     if (useDirectUpload) {
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+
       uploadFile(
         {
           path: {
             realm_name,
           },
-          file: selectedFile,
+          body: formData,
         },
         {
           onSuccess: () => {

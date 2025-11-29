@@ -31,12 +31,16 @@ export const fetcher: Fetcher = async (method, apiUrl, params) => {
   }
 
   // Handle request body for mutation methods
-  const body = ['post', 'put', 'patch', 'delete'].includes(method.toLowerCase())
-    ? JSON.stringify(params?.body)
-    : undefined
-
-  if (body) {
-    headers.set('Content-Type', 'application/json')
+  let body: BodyInit | undefined
+  if (['post', 'put', 'patch', 'delete'].includes(method.toLowerCase()) && params?.body) {
+    if (params.body instanceof FormData) {
+      // FormData - don't set Content-Type, browser will set it with boundary
+      body = params.body
+    } else {
+      // JSON body
+      body = JSON.stringify(params.body)
+      headers.set('Content-Type', 'application/json')
+    }
   }
 
   if (accessToken) {
