@@ -12,6 +12,9 @@ use super::value_objects::{CreateStoredObject, OffsetLimit, Paginated, StoredObj
 /// Port for object storage operations (MinIO/S3)
 #[cfg_attr(test, mockall::automock)]
 pub trait ObjectStoragePort: Send + Sync {
+    /// Generate a bucket name for a given realm name
+    fn bucket_name(&self, realm_name: &str) -> String;
+
     /// Upload an object directly to storage
     fn put_object(
         &self,

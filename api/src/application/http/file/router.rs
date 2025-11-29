@@ -32,17 +32,17 @@ pub fn file_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .route(
             &format!(
-                "{}/realms/{{realm_name}}/files/uploads",
-                state.args.server.root_path
-            ),
-            post(initiate_upload),
-        )
-        .route(
-            &format!(
                 "{}/realms/{{realm_name}}/files/upload",
                 state.args.server.root_path
             ),
             post(upload_file),
+        )
+        .route(
+            &format!(
+                "{}/realms/{{realm_name}}/files/uploads",
+                state.args.server.root_path
+            ),
+            post(initiate_upload),
         )
         .route(
             &format!(

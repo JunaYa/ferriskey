@@ -8,6 +8,7 @@ use ferriskey_core::domain::{
     authentication::value_objects::Identity,
     storage::{entities::StoredObject, services::FileService},
 };
+use tracing::{error, warn};
 
 use crate::application::http::server::{
     api_entities::{api_error::ApiError, response::Response},
@@ -44,11 +45,10 @@ pub async fn upload_file(
     let mut metadata: Option<serde_json::Value> = None;
 
     // Parse multipart form
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| ApiError::BadRequest(format!("Failed to read multipart field: {}", e)))?
-    {
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        error!("Failed to read multipart field: {}", e);
+        ApiError::BadRequest(format!("Failed to read multipart field: {}", e))
+    })? {
         let name = field.name().unwrap_or("").to_string();
 
         match name.as_str() {
@@ -68,10 +68,19 @@ pub async fn upload_file(
                 }
 
                 // Read file data
-                let data = field
-                    .bytes()
-                    .await
-                    .map_err(|e| ApiError::BadRequest(format!("Failed to read file: {}", e)))?;
+                let data = field.bytes().await.map_err(|e| {
+                    error!("Failed to read file bytes: {}", e);
+                    ApiError::BadRequest(format!("Failed to read file: {}", e))
+                })?;
+
+                // Validate file is not empty
+                if data.is_empty() {
+                    warn!(
+                        filename = %filename.as_ref().unwrap_or(&"unknown".to_string()),
+                        "Empty file upload attempted"
+                    );
+                    return Err(ApiError::BadRequest("File cannot be empty".to_string()));
+                }
 
                 // Validate file size
                 if data.len() > MAX_FILE_SIZE {
@@ -115,10 +124,24 @@ pub async fn upload_file(
     let stored_object = state
         .service
         .upload_file_direct(
-            identity, realm_name, filename, mime_type, file_data, metadata,
+            identity,
+            realm_name.clone(),
+            filename.clone(),
+            mime_type.clone(),
+            file_data,
+            metadata,
         )
         .await
-        .map_err(ApiError::from)?;
+        .map_err(|e| {
+            error!(
+                error = %e,
+                realm_name = %realm_name,
+                filename = %filename,
+                mime_type = %mime_type,
+                "Failed to upload file =>>>>"
+            );
+            ApiError::from(e)
+        })?;
 
     Ok(Response::OK(stored_object).into_response())
 }

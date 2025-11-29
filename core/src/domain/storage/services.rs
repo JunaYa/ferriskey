@@ -154,7 +154,8 @@ where
             input.filename
         );
 
-        let bucket = format!("ferriskey-{}", realm.name);
+        // Get bucket name from object storage (uses configured bucket_prefix)
+        let bucket = self.object_storage.as_ref().bucket_name(&realm.name);
 
         // Create metadata record
         let create_input = CreateStoredObject {
@@ -408,7 +409,8 @@ where
         // Generate object key
         let object_key = format!("{}/{}/{}", realm.id, generate_random_string(16), filename);
 
-        let bucket = format!("ferriskey-{}", realm.name);
+        // Get bucket name from object storage (uses configured bucket_prefix)
+        let bucket = self.object_storage.as_ref().bucket_name(&realm.name);
 
         // Create metadata record
         let create_input = CreateStoredObject {

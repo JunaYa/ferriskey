@@ -204,7 +204,7 @@ Validation:
 - Add `minio` service (image `minio/minio:RELEASE.2024-09-25T`), expose `9000` (API) & `9001` (console).
 - Add `minio-setup` job to create default bucket (`ferriskey-local`) and access policy.
 - API service env:
-  - `OBJECT_STORAGE_ENDPOINT=http://minio:9000`
+  - `OBJECT_STORAGE_ENDPOINT=http://localhost:9000`
   - `OBJECT_STORAGE_ACCESS_KEY=ferriskey`
   - `OBJECT_STORAGE_SECRET_KEY=ferriskeysecret`
   - `OBJECT_STORAGE_BUCKET_PREFIX=ferriskey-local`

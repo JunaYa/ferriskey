@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BaseQuery, fetcher } from '.'
 import { Schemas } from './api.client'
+import { authStore } from '@/store/auth.store'
+import { AxiosProgressEvent } from 'axios'
 
 export interface ListFilesQuery extends BaseQuery {
   offset?: number
@@ -39,6 +41,7 @@ export interface UploadFileMutationData {
     realm_name: string
   }
   body: FormData
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 }
 
 // List files with pagination and filters
@@ -124,12 +127,27 @@ export const useUploadFile = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    ...window.tanstackApi
-      .mutation('post', '/realms/{realm_name}/files/upload', async (response) => {
-        const data = await response.json()
-        return data as Schemas.StoredObject
-      })
-      .mutationOptions,
+    mutationFn: async (variables: UploadFileMutationData): Promise<Schemas.StoredObject> => {
+      const accessToken = authStore.getState().accessToken
+      const headers: Record<string, string> = {
+        'Content-Type': 'multipart/form-data',
+      }
+
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const response = await window.axios.post<Schemas.StoredObject>(
+        `/realms/${variables.path.realm_name}/files/upload`,
+        variables.body,
+        {
+          headers,
+          onUploadProgress: variables.onUploadProgress,
+        }
+      )
+
+      return response.data
+    },
     onSuccess: async (_data, variables) => {
       // Invalidate file list
       const queryKey = window.tanstackApi

@@ -56,6 +56,12 @@ export default function UploadFileModalFeature({ open, setOpen }: Props) {
             realm_name,
           },
           body: formData,
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentComplete = (progressEvent.loaded / progressEvent.total) * 100
+              setUploadProgress(percentComplete)
+            }
+          },
         },
         {
           onSuccess: () => {

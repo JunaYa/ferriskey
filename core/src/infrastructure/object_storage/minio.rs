@@ -27,6 +27,7 @@ pub struct ObjectStorageConfig {
 #[derive(Clone)]
 pub struct MinioObjectStorage {
     client: Client,
+    bucket_prefix: String,
 }
 
 impl MinioObjectStorage {
@@ -39,21 +40,38 @@ impl MinioObjectStorage {
             "ferriskey",
         );
 
+        // Ensure endpoint URL is properly formatted (remove trailing slash)
+        let endpoint = config.endpoint.trim_end_matches('/');
+
+        tracing::info!(
+            endpoint = %endpoint,
+            region = %config.region,
+            use_ssl = config.use_ssl,
+            "Initializing MinIO client"
+        );
+
         let s3_config = aws_sdk_s3::Config::builder()
             .behavior_version(BehaviorVersion::latest())
             .region(Region::new(config.region.clone()))
             .credentials_provider(credentials)
-            .endpoint_url(&config.endpoint)
+            .endpoint_url(endpoint)
             .force_path_style(true)
             .build();
 
         let client = Client::from_conf(s3_config);
 
-        Self { client }
+        Self {
+            client,
+            bucket_prefix: config.bucket_prefix,
+        }
     }
 }
 
 impl ObjectStoragePort for MinioObjectStorage {
+    fn bucket_name(&self, realm_name: &str) -> String {
+        format!("{}-{}", self.bucket_prefix, realm_name)
+    }
+
     #[instrument(skip(self, payload))]
     async fn put_object(
         &self,
@@ -62,31 +80,55 @@ impl ObjectStoragePort for MinioObjectStorage {
         payload: Bytes,
         content_type: &str,
     ) -> Result<(), CoreError> {
+        // Save payload size before moving payload into ByteStream
+        let payload_size = payload.len();
+
         tracing::info!(
             bucket = %bucket,
             object_key = %object_key,
-            size = payload.len(),
+            size = payload_size,
+            content_type = %content_type,
             "Uploading object to storage"
         );
 
+        // Create ByteStream from Bytes
+        // Bytes is already reference-counted, so no need to clone
         let byte_stream = ByteStream::from(payload);
 
+        // Attempt upload with detailed error logging
         self.client
             .put_object()
             .bucket(bucket)
             .key(object_key)
-            .body(byte_stream)
             .content_type(content_type)
+            .body(byte_stream)
             .send()
             .await
             .map_err(|e| {
+                // Log detailed error information for debugging
+                let error_msg = format!("{}", e);
+                let error_kind = if error_msg.contains("dispatch failure") {
+                    "HTTP client dispatch failure - check endpoint URL and network connectivity"
+                } else if error_msg.contains("timeout") {
+                    "Request timeout - check network connection and MinIO server status"
+                } else if error_msg.contains("connection") {
+                    "Connection error - check MinIO endpoint and network"
+                } else {
+                    "Unknown error"
+                };
+
                 tracing::error!(
                     error = %e,
+                    error_kind = %error_kind,
                     bucket = %bucket,
                     object_key = %object_key,
+                    payload_size = payload_size,
                     "Failed to upload object"
                 );
-                CoreError::ObjectStorageError(format!("Failed to upload object: {}", e))
+                CoreError::ObjectStorageError(format!(
+                    "Failed to upload object: {} ({})",
+                    e, error_kind
+                ))
             })?;
 
         tracing::info!(

@@ -30,7 +30,7 @@ tower-http = { version = "0.6.2", features = ["cors", "trace"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
 utoipa = { version = "5.3.1", features = ["chrono", "uuid"] }
-utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
+utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "reqwest"] }
 uuid = { version = "1.16.0", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive"] }
 base32 = "0.5.1"
