@@ -3,6 +3,7 @@ pub mod client;
 pub mod common;
 pub mod credential;
 pub mod crypto;
+pub mod device_profile;
 pub mod food_analysis;
 pub mod health;
 pub mod jwt;

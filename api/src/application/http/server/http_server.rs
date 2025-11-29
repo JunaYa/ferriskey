@@ -23,8 +23,14 @@ use axum::http::{HeaderValue, Method};
 use axum::routing::get;
 use axum_cookie::prelude::*;
 use axum_prometheus::PrometheusMetricLayer;
-use ferriskey_core::application::create_service;
-use ferriskey_core::domain::common::FerriskeyConfig;
+use ferriskey_core::{
+    application::create_service,
+    domain::common::FerriskeyConfig,
+    infrastructure::{
+        db::postgres::{Postgres, PostgresConfig},
+        device_profile::PostgresDeviceProfileRepository,
+    },
+};
 use tower_http::cors::CorsLayer;
 use tracing::{debug, info_span};
 use utoipa::OpenApi;
@@ -35,9 +41,21 @@ use utoipa_swagger_ui::SwaggerUi;
 
 pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
     let ferriskey_config: FerriskeyConfig = FerriskeyConfig::from(args.as_ref().clone());
-    let service = create_service(ferriskey_config).await?;
+    let service = create_service(ferriskey_config.clone()).await?;
 
-    Ok(AppState::new(args, service))
+    // Create device profile repository
+    let database_url = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        ferriskey_config.database.username,
+        ferriskey_config.database.password,
+        ferriskey_config.database.host,
+        ferriskey_config.database.port,
+        ferriskey_config.database.name
+    );
+    let postgres = Postgres::new(PostgresConfig { database_url }).await?;
+    let device_profile_repository = PostgresDeviceProfileRepository::new(postgres.get_db());
+
+    Ok(AppState::new(args, service, device_profile_repository))
 }
 
 ///  Returns the [`Router`] of this application.

@@ -1,6 +1,7 @@
 pub mod client;
 pub mod common;
 pub mod db;
+pub mod device_profile;
 pub mod food_analysis;
 pub mod health;
 pub mod llm;

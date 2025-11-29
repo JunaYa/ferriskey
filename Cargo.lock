@@ -1726,6 +1726,7 @@ dependencies = [
  "bytes",
  "chrono",
  "futures",
+ "hex",
  "hmac",
  "jsonwebtoken",
  "mockall",
