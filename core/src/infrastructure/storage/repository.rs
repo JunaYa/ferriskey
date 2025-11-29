@@ -76,10 +76,6 @@ impl StoredObjectRepository for PostgresStoredObjectRepository {
         let mut query = StoredObjectEntity::find();
 
         // Apply filters
-        if let Some(realm_id) = filter.realm_id {
-            query = query.filter(StoredObjectColumn::RealmId.eq(realm_id));
-        }
-
         if let Some(mime_type) = filter.mime_type {
             query = query.filter(StoredObjectColumn::MimeType.eq(mime_type));
         }

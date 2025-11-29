@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction, useState, useCallback } from 'react'
 import { toast } from 'sonner'
-import { useInitiateUpload, useCompleteUpload } from '../../../api/file.api'
+import { useInitiateUpload, useCompleteUpload, useUploadFile } from '../../../api/file.api'
 import { Schemas } from '../../../api/api.client'
 import UploadFileModal from '../ui/upload-file-modal'
 import { useParams } from 'react-router'
@@ -23,11 +23,13 @@ const calculateSHA256 = async (file: File): Promise<string> => {
 
 export default function UploadFileModalFeature({ open, setOpen }: Props) {
   const { realm_name } = useParams<RouterParams>()
+  const { mutate: uploadFile, isPending: isUploadingDirect } = useUploadFile()
   const { mutate: initiateUpload, isPending: isInitiating } = useInitiateUpload()
   const { mutate: completeUpload, isPending: isCompleting } = useCompleteUpload()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
+  const useDirectUpload = true // Default to direct upload (simpler approach)
 
   const handleFileSelect = useCallback((file: File | null) => {
     setSelectedFile(file)
@@ -40,10 +42,37 @@ export default function UploadFileModalFeature({ open, setOpen }: Props) {
       return
     }
 
-    try {
-      setIsUploading(true)
-      setUploadProgress(0)
+    setIsUploading(true)
+    setUploadProgress(0)
 
+    // Use direct upload (simpler, recommended for smaller files)
+    if (useDirectUpload) {
+      uploadFile(
+        {
+          path: {
+            realm_name,
+          },
+          file: selectedFile,
+        },
+        {
+          onSuccess: () => {
+            toast.success('File uploaded successfully')
+            setSelectedFile(null)
+            setUploadProgress(0)
+            setOpen(false)
+            setIsUploading(false)
+          },
+          onError: (error) => {
+            toast.error(`Failed to upload file: ${error.message}`)
+            setIsUploading(false)
+          },
+        }
+      )
+      return
+    }
+
+    // Use multi-step upload (for large files with progress tracking)
+    try {
       // Step 1: Calculate checksum
       toast.info('Calculating file checksum...')
       const checksum = await calculateSHA256(selectedFile)
@@ -157,15 +186,15 @@ export default function UploadFileModalFeature({ open, setOpen }: Props) {
       toast.error(errorMessage)
       setIsUploading(false)
     }
-  }, [selectedFile, realm_name, initiateUpload, completeUpload, setOpen])
+  }, [selectedFile, realm_name, useDirectUpload, uploadFile, initiateUpload, completeUpload, setOpen])
 
   const handleClose = useCallback(() => {
-    if (!isUploading && !isInitiating && !isCompleting) {
+    if (!isUploading && !isInitiating && !isCompleting && !isUploadingDirect) {
       setSelectedFile(null)
       setUploadProgress(0)
       setOpen(false)
     }
-  }, [isUploading, isInitiating, isCompleting, setOpen])
+  }, [isUploading, isInitiating, isCompleting, isUploadingDirect, setOpen])
 
   return (
     <UploadFileModal
@@ -175,7 +204,7 @@ export default function UploadFileModalFeature({ open, setOpen }: Props) {
       onFileSelect={handleFileSelect}
       onUpload={handleUpload}
       uploadProgress={uploadProgress}
-      isUploading={isUploading || isInitiating || isCompleting}
+      isUploading={isUploading || isInitiating || isCompleting || isUploadingDirect}
     />
   )
 }

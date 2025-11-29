@@ -18,7 +18,6 @@ pub struct CreateStoredObject {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ToSchema)]
 pub struct StoredObjectFilter {
-    pub realm_id: Option<Uuid>,
     pub mime_type: Option<String>,
     pub uploaded_by: Option<Uuid>,
     pub created_before: Option<DateTime<Utc>>,

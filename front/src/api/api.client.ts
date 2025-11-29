@@ -594,11 +594,22 @@ export namespace Endpoints {
     };
     response: Schemas.Paginated_StoredObject;
   };
+  export type post_Upload_file = {
+    method: 'POST';
+    path: '/realms/{realm_name}/files/upload';
+    requestFormat: 'form-data';
+    parameters: {
+      path: { realm_name: string };
+      body?: FormData;
+    };
+    response: Schemas.StoredObject;
+  };
   export type post_Initiate_upload = {
     method: 'POST';
     path: '/realms/{realm_name}/files/uploads';
     requestFormat: 'json';
     parameters: {
+      path: { realm_name: string };
       body: Schemas.InitiateUploadRequest;
     };
     response: Schemas.UploadNegotiation;
@@ -1056,6 +1067,7 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/clients': Endpoints.post_Create_client;
     '/realms/{realm_name}/clients/{client_id}/redirects': Endpoints.post_Create_redirect_uri;
     '/realms/{realm_name}/clients/{client_id}/roles': Endpoints.post_Create_role;
+    '/realms/{realm_name}/files/upload': Endpoints.post_Upload_file;
     '/realms/{realm_name}/files/uploads': Endpoints.post_Initiate_upload;
     '/realms/{realm_name}/files/{file_id}/complete': Endpoints.post_Complete_upload;
     '/realms/{realm_name}/food-analysis/image': Endpoints.post_Analyze_food_image;

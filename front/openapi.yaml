@@ -573,6 +573,34 @@ paths:
           description: Bad request
         "403":
           description: Forbidden
+  /realms/{realm_name}/files/upload:
+    post:
+      tags:
+        - file
+      summary: Upload a file directly
+      description: Upload a file directly via multipart form data. The file will be
+        uploaded to MinIO and metadata stored in the database.
+      operationId: upload_file
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoredObject"
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+        "413":
+          description: File too large
   /realms/{realm_name}/files/uploads:
     post:
       tags:

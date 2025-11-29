@@ -252,11 +252,10 @@ where
             .map_err(|_| CoreError::InvalidPagination)?;
 
         // Get realm from filter
-        let realm_id = filter.realm_id.ok_or(CoreError::InvalidRealm)?;
+        let realm_id = identity.realm_id();
 
         // Get user from identity and verify realm access
         let user = self.user_repository.get_by_id(identity.id()).await?;
-
         let realm = user.realm.ok_or(CoreError::InvalidRealm)?;
 
         // Verify filtering on accessible realm

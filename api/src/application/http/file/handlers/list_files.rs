@@ -43,7 +43,6 @@ pub async fn list_files(
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<Paginated<StoredObject>>, ApiError> {
     let filter = StoredObjectFilter {
-        realm_id: query.realm_id,
         mime_type: query.mime_type,
         uploaded_by: query.uploaded_by,
         created_before: query.created_before,
