@@ -7,7 +7,7 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "food_analysis_requests"
+        "device_profiles"
     }
 }
 
@@ -15,29 +15,23 @@ impl EntityName for Entity {
 pub struct Model {
     pub id: Uuid,
     pub realm_id: Uuid,
-    pub prompt_id: Uuid,
-    pub input_type: String,
-    pub input_content: Option<String>,
-    pub created_by: Uuid,
-    pub created_at: DateTimeWithTimeZone,
     pub device_id: String,
     pub user_id: Uuid,
+    pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
-    pub updated_by: Uuid,
+    pub created_by: Option<Uuid>,
+    pub updated_by: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
     RealmId,
-    PromptId,
-    InputType,
-    InputContent,
-    CreatedBy,
-    CreatedAt,
     DeviceId,
     UserId,
+    CreatedAt,
     UpdatedAt,
+    CreatedBy,
     UpdatedBy,
 }
 
@@ -55,9 +49,6 @@ impl PrimaryKeyTrait for PrimaryKey {
 
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
-    FoodAnalysisItems,
-    FoodAnalysisResults,
-    Prompts,
     Realms,
     Users3,
     Users2,
@@ -70,15 +61,12 @@ impl ColumnTrait for Column {
         match self {
             Self::Id => ColumnType::Uuid.def(),
             Self::RealmId => ColumnType::Uuid.def(),
-            Self::PromptId => ColumnType::Uuid.def(),
-            Self::InputType => ColumnType::String(StringLen::N(10u32)).def(),
-            Self::InputContent => ColumnType::Text.def().null(),
-            Self::CreatedBy => ColumnType::Uuid.def(),
-            Self::CreatedAt => ColumnType::TimestampWithTimeZone.def(),
             Self::DeviceId => ColumnType::Text.def(),
             Self::UserId => ColumnType::Uuid.def(),
+            Self::CreatedAt => ColumnType::TimestampWithTimeZone.def(),
             Self::UpdatedAt => ColumnType::TimestampWithTimeZone.def(),
-            Self::UpdatedBy => ColumnType::Uuid.def(),
+            Self::CreatedBy => ColumnType::Uuid.def().null(),
+            Self::UpdatedBy => ColumnType::Uuid.def().null(),
         }
     }
 }
@@ -86,14 +74,6 @@ impl ColumnTrait for Column {
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
-            Self::FoodAnalysisItems => Entity::has_many(super::food_analysis_items::Entity).into(),
-            Self::FoodAnalysisResults => {
-                Entity::has_one(super::food_analysis_results::Entity).into()
-            }
-            Self::Prompts => Entity::belongs_to(super::prompts::Entity)
-                .from(Column::PromptId)
-                .to(super::prompts::Column::Id)
-                .into(),
             Self::Realms => Entity::belongs_to(super::realms::Entity)
                 .from(Column::RealmId)
                 .to(super::realms::Column::Id)
@@ -111,24 +91,6 @@ impl RelationTrait for Relation {
                 .to(super::users::Column::Id)
                 .into(),
         }
-    }
-}
-
-impl Related<super::food_analysis_items::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::FoodAnalysisItems.def()
-    }
-}
-
-impl Related<super::food_analysis_results::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::FoodAnalysisResults.def()
-    }
-}
-
-impl Related<super::prompts::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Prompts.def()
     }
 }
 

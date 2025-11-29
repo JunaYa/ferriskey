@@ -7,7 +7,7 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "food_analysis_requests"
+        "food_reactions"
     }
 }
 
@@ -15,14 +15,16 @@ impl EntityName for Entity {
 pub struct Model {
     pub id: Uuid,
     pub realm_id: Uuid,
-    pub prompt_id: Uuid,
-    pub input_type: String,
-    pub input_content: Option<String>,
-    pub created_by: Uuid,
-    pub created_at: DateTimeWithTimeZone,
     pub device_id: String,
     pub user_id: Uuid,
+    pub analysis_item_id: Option<Uuid>,
+    pub eaten_at: DateTimeWithTimeZone,
+    pub feeling: String,
+    pub symptom_onset: String,
+    pub notes: Option<String>,
+    pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
+    pub created_by: Uuid,
     pub updated_by: Uuid,
 }
 
@@ -30,14 +32,16 @@ pub struct Model {
 pub enum Column {
     Id,
     RealmId,
-    PromptId,
-    InputType,
-    InputContent,
-    CreatedBy,
-    CreatedAt,
     DeviceId,
     UserId,
+    AnalysisItemId,
+    EatenAt,
+    Feeling,
+    SymptomOnset,
+    Notes,
+    CreatedAt,
     UpdatedAt,
+    CreatedBy,
     UpdatedBy,
 }
 
@@ -56,8 +60,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     FoodAnalysisItems,
-    FoodAnalysisResults,
-    Prompts,
+    FoodReactionSymptoms,
     Realms,
     Users3,
     Users2,
@@ -70,14 +73,16 @@ impl ColumnTrait for Column {
         match self {
             Self::Id => ColumnType::Uuid.def(),
             Self::RealmId => ColumnType::Uuid.def(),
-            Self::PromptId => ColumnType::Uuid.def(),
-            Self::InputType => ColumnType::String(StringLen::N(10u32)).def(),
-            Self::InputContent => ColumnType::Text.def().null(),
-            Self::CreatedBy => ColumnType::Uuid.def(),
-            Self::CreatedAt => ColumnType::TimestampWithTimeZone.def(),
             Self::DeviceId => ColumnType::Text.def(),
             Self::UserId => ColumnType::Uuid.def(),
+            Self::AnalysisItemId => ColumnType::Uuid.def().null(),
+            Self::EatenAt => ColumnType::TimestampWithTimeZone.def(),
+            Self::Feeling => ColumnType::Text.def(),
+            Self::SymptomOnset => ColumnType::Text.def(),
+            Self::Notes => ColumnType::Text.def().null(),
+            Self::CreatedAt => ColumnType::TimestampWithTimeZone.def(),
             Self::UpdatedAt => ColumnType::TimestampWithTimeZone.def(),
+            Self::CreatedBy => ColumnType::Uuid.def(),
             Self::UpdatedBy => ColumnType::Uuid.def(),
         }
     }
@@ -86,14 +91,13 @@ impl ColumnTrait for Column {
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
-            Self::FoodAnalysisItems => Entity::has_many(super::food_analysis_items::Entity).into(),
-            Self::FoodAnalysisResults => {
-                Entity::has_one(super::food_analysis_results::Entity).into()
-            }
-            Self::Prompts => Entity::belongs_to(super::prompts::Entity)
-                .from(Column::PromptId)
-                .to(super::prompts::Column::Id)
+            Self::FoodAnalysisItems => Entity::belongs_to(super::food_analysis_items::Entity)
+                .from(Column::AnalysisItemId)
+                .to(super::food_analysis_items::Column::Id)
                 .into(),
+            Self::FoodReactionSymptoms => {
+                Entity::has_many(super::food_reaction_symptoms::Entity).into()
+            }
             Self::Realms => Entity::belongs_to(super::realms::Entity)
                 .from(Column::RealmId)
                 .to(super::realms::Column::Id)
@@ -120,15 +124,9 @@ impl Related<super::food_analysis_items::Entity> for Entity {
     }
 }
 
-impl Related<super::food_analysis_results::Entity> for Entity {
+impl Related<super::food_reaction_symptoms::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::FoodAnalysisResults.def()
-    }
-}
-
-impl Related<super::prompts::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Prompts.def()
+        Relation::FoodReactionSymptoms.def()
     }
 }
 

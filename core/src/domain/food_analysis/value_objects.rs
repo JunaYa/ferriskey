@@ -9,6 +9,8 @@ pub struct AnalyzeFoodInput {
     pub input_type: InputType,
     pub text_input: Option<String>,
     pub image_data: Option<Vec<u8>>,
+    pub device_id: String,
+    pub user_id: Uuid,
 }
 
 #[derive(Debug, Clone)]

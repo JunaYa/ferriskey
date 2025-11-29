@@ -140,6 +140,8 @@ where
             input.input_type,
             input_content,
             identity.id(),
+            input.device_id,
+            input.user_id,
         );
         let request = self
             .food_analysis_repository
@@ -147,7 +149,13 @@ where
             .await?;
 
         // 9. Create result record
-        let result = FoodAnalysisResult::new(request.id, dishes, raw_response);
+        let result = FoodAnalysisResult::new(
+            request.id,
+            dishes,
+            raw_response,
+            identity.id(),
+            identity.id(),
+        );
         let result = self.food_analysis_repository.create_result(result).await?;
 
         Ok(result)

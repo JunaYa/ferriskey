@@ -13,6 +13,10 @@ impl From<&food_analysis_requests::Model> for FoodAnalysisRequest {
             input_content: model.input_content.clone().unwrap_or_default(),
             created_by: model.created_by,
             created_at: model.created_at.to_utc(),
+            updated_at: model.updated_at.to_utc(),
+            updated_by: model.updated_by,
+            device_id: model.device_id.clone(),
+            user_id: model.user_id,
         }
     }
 }
@@ -33,6 +37,9 @@ impl From<&food_analysis_results::Model> for FoodAnalysisResult {
             dishes,
             raw_response: model.raw_response.clone(),
             created_at: model.created_at.to_utc(),
+            updated_at: model.updated_at.to_utc(),
+            updated_by: model.updated_by,
+            created_by: model.created_by,
         }
     }
 }

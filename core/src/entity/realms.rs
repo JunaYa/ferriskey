@@ -43,7 +43,11 @@ impl PrimaryKeyTrait for PrimaryKey {
 pub enum Relation {
     AuthSessions,
     Clients,
+    DeviceProfiles,
+    FoodAnalysisItems,
     FoodAnalysisRequests,
+    FoodAnalysisTriggers,
+    FoodReactions,
     JwtKeys,
     Prompts,
     RealmSettings,
@@ -72,9 +76,15 @@ impl RelationTrait for Relation {
         match self {
             Self::AuthSessions => Entity::has_many(super::auth_sessions::Entity).into(),
             Self::Clients => Entity::has_many(super::clients::Entity).into(),
+            Self::DeviceProfiles => Entity::has_many(super::device_profiles::Entity).into(),
+            Self::FoodAnalysisItems => Entity::has_many(super::food_analysis_items::Entity).into(),
             Self::FoodAnalysisRequests => {
                 Entity::has_many(super::food_analysis_requests::Entity).into()
             }
+            Self::FoodAnalysisTriggers => {
+                Entity::has_many(super::food_analysis_triggers::Entity).into()
+            }
+            Self::FoodReactions => Entity::has_many(super::food_reactions::Entity).into(),
             Self::JwtKeys => Entity::has_many(super::jwt_keys::Entity).into(),
             Self::Prompts => Entity::has_many(super::prompts::Entity).into(),
             Self::RealmSettings => Entity::has_many(super::realm_settings::Entity).into(),
@@ -100,9 +110,33 @@ impl Related<super::clients::Entity> for Entity {
     }
 }
 
+impl Related<super::device_profiles::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DeviceProfiles.def()
+    }
+}
+
+impl Related<super::food_analysis_items::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FoodAnalysisItems.def()
+    }
+}
+
 impl Related<super::food_analysis_requests::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::FoodAnalysisRequests.def()
+    }
+}
+
+impl Related<super::food_analysis_triggers::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FoodAnalysisTriggers.def()
+    }
+}
+
+impl Related<super::food_reactions::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FoodReactions.def()
     }
 }
 

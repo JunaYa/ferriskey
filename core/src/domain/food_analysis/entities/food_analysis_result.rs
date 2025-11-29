@@ -12,6 +12,9 @@ pub struct FoodAnalysisResult {
     pub dishes: Vec<DishAnalysis>,
     pub raw_response: String,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub updated_by: Uuid,
+    pub created_by: Uuid,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
@@ -40,7 +43,13 @@ pub struct RiskIngredient {
 }
 
 impl FoodAnalysisResult {
-    pub fn new(request_id: Uuid, dishes: Vec<DishAnalysis>, raw_response: String) -> Self {
+    pub fn new(
+        request_id: Uuid,
+        dishes: Vec<DishAnalysis>,
+        raw_response: String,
+        created_by: Uuid,
+        updated_by: Uuid,
+    ) -> Self {
         let (_, timestamp) = generate_timestamp();
         let now = Utc::now();
 
@@ -50,6 +59,9 @@ impl FoodAnalysisResult {
             dishes,
             raw_response,
             created_at: now,
+            updated_at: now,
+            created_by,
+            updated_by,
         }
     }
 }

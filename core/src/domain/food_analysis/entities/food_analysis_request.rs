@@ -10,10 +10,14 @@ pub struct FoodAnalysisRequest {
     pub id: Uuid,
     pub realm_id: Uuid,
     pub prompt_id: Uuid,
+    pub device_id: String,
+    pub user_id: Uuid,
     pub input_type: InputType,
     pub input_content: String,
     pub created_by: Uuid,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub updated_by: Uuid,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -49,6 +53,8 @@ impl FoodAnalysisRequest {
         input_type: InputType,
         input_content: String,
         created_by: Uuid,
+        device_id: String,
+        user_id: Uuid,
     ) -> Self {
         let (_, timestamp) = generate_timestamp();
         let now = Utc::now();
@@ -61,6 +67,10 @@ impl FoodAnalysisRequest {
             input_content,
             created_by,
             created_at: now,
+            updated_at: now,
+            updated_by: created_by,
+            device_id,
+            user_id,
         }
     }
 }

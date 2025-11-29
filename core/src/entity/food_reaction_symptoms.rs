@@ -7,32 +7,30 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "food_analysis_results"
+        "food_reaction_symptoms"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq)]
 pub struct Model {
     pub id: Uuid,
-    pub request_id: Uuid,
-    pub dishes: Json,
-    pub raw_response: String,
+    pub reaction_id: Uuid,
+    pub symptom_code: String,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
-    pub updated_by: Uuid,
     pub created_by: Uuid,
+    pub updated_by: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
-    RequestId,
-    Dishes,
-    RawResponse,
+    ReactionId,
+    SymptomCode,
     CreatedAt,
     UpdatedAt,
-    UpdatedBy,
     CreatedBy,
+    UpdatedBy,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -49,8 +47,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
-    FoodAnalysisItems,
-    FoodAnalysisRequests,
+    FoodReactions,
     Users2,
     Users1,
 }
@@ -60,13 +57,12 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::Uuid.def(),
-            Self::RequestId => ColumnType::Uuid.def().unique(),
-            Self::Dishes => ColumnType::JsonBinary.def(),
-            Self::RawResponse => ColumnType::Text.def(),
+            Self::ReactionId => ColumnType::Uuid.def(),
+            Self::SymptomCode => ColumnType::Text.def(),
             Self::CreatedAt => ColumnType::TimestampWithTimeZone.def(),
             Self::UpdatedAt => ColumnType::TimestampWithTimeZone.def(),
-            Self::UpdatedBy => ColumnType::Uuid.def(),
             Self::CreatedBy => ColumnType::Uuid.def(),
+            Self::UpdatedBy => ColumnType::Uuid.def(),
         }
     }
 }
@@ -74,10 +70,9 @@ impl ColumnTrait for Column {
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
-            Self::FoodAnalysisItems => Entity::has_many(super::food_analysis_items::Entity).into(),
-            Self::FoodAnalysisRequests => Entity::belongs_to(super::food_analysis_requests::Entity)
-                .from(Column::RequestId)
-                .to(super::food_analysis_requests::Column::Id)
+            Self::FoodReactions => Entity::belongs_to(super::food_reactions::Entity)
+                .from(Column::ReactionId)
+                .to(super::food_reactions::Column::Id)
                 .into(),
             Self::Users2 => Entity::belongs_to(super::users::Entity)
                 .from(Column::CreatedBy)
@@ -91,15 +86,9 @@ impl RelationTrait for Relation {
     }
 }
 
-impl Related<super::food_analysis_items::Entity> for Entity {
+impl Related<super::food_reactions::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::FoodAnalysisItems.def()
-    }
-}
-
-impl Related<super::food_analysis_requests::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::FoodAnalysisRequests.def()
+        Relation::FoodReactions.def()
     }
 }
 

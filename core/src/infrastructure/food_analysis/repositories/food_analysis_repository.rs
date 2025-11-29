@@ -48,6 +48,10 @@ impl FoodAnalysisRepository for PostgresFoodAnalysisRepository {
             input_content: Set(Some(request.input_content)),
             created_by: Set(request.created_by),
             created_at: Set(request.created_at.fixed_offset()),
+            device_id: Set(request.device_id),
+            user_id: Set(request.user_id),
+            updated_at: Set(request.created_at.fixed_offset()),
+            updated_by: Set(request.created_by),
         })
         .exec_with_returning(&self.db)
         .await
@@ -75,6 +79,9 @@ impl FoodAnalysisRepository for PostgresFoodAnalysisRepository {
             dishes: Set(dishes_json),
             raw_response: Set(result.raw_response),
             created_at: Set(result.created_at.fixed_offset()),
+            updated_at: Set(result.created_at.fixed_offset()),
+            updated_by: Set(result.created_by),
+            created_by: Set(result.created_by),
         })
         .exec_with_returning(&self.db)
         .await
