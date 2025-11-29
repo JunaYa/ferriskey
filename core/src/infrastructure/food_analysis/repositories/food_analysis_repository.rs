@@ -9,18 +9,22 @@ use crate::{
     domain::{
         common::entities::app_errors::CoreError,
         food_analysis::{
-            entities::{FoodAnalysisRequest, FoodAnalysisResult},
+            entities::{
+                FoodAnalysisItem, FoodAnalysisRequest, FoodAnalysisResult, FoodAnalysisTrigger,
+            },
             ports::FoodAnalysisRepository,
             value_objects::GetFoodAnalysisFilter,
         },
     },
     entity::{
+        food_analysis_items::{ActiveModel as ItemActiveModel, Entity as ItemEntity},
         food_analysis_requests::{
             ActiveModel as RequestActiveModel, Column as RequestColumn, Entity as RequestEntity,
         },
         food_analysis_results::{
             ActiveModel as ResultActiveModel, Column as ResultColumn, Entity as ResultEntity,
         },
+        food_analysis_triggers::{ActiveModel as TriggerActiveModel, Entity as TriggerEntity},
     },
 };
 
@@ -159,5 +163,83 @@ impl FoodAnalysisRepository for PostgresFoodAnalysisRepository {
             .collect();
 
         Ok(requests)
+    }
+
+    async fn create_items_batch(
+        &self,
+        items: Vec<FoodAnalysisItem>,
+    ) -> Result<Vec<FoodAnalysisItem>, CoreError> {
+        let mut created_items = Vec::new();
+
+        for item in items {
+            let active_model = ItemActiveModel {
+                id: Set(item.id),
+                realm_id: Set(item.realm_id),
+                request_id: Set(item.request_id),
+                result_id: Set(item.result_id),
+                dish_index: Set(item.dish_index),
+                input_index: Set(item.input_index),
+                dish_name: Set(item.dish_name.clone()),
+                safety_level: Set(item.safety_level.clone()),
+                risk_score: Set(item.risk_score),
+                risk_band: Set(item.risk_band.clone()),
+                summary_reason: Set(item.summary_reason.clone()),
+                ibd_concerns: Set(item.ibd_concerns.clone()),
+                ibs_concerns: Set(item.ibs_concerns.clone()),
+                recommendations: Set(item.recommendations.clone()),
+                image_object_key: Set(item.image_object_key.clone()),
+                created_at: Set(item.created_at.fixed_offset()),
+                updated_at: Set(item.updated_at.fixed_offset()),
+                created_by: Set(item.created_by),
+                updated_by: Set(item.updated_by),
+            };
+
+            let created = ItemEntity::insert(active_model)
+                .exec_with_returning(&self.db)
+                .await
+                .map_err(|e| {
+                    error!("Failed to create food analysis item: {}", e);
+                    CoreError::InternalServerError
+                })?;
+
+            created_items.push(FoodAnalysisItem::from(created));
+        }
+
+        Ok(created_items)
+    }
+
+    async fn create_triggers_batch(
+        &self,
+        triggers: Vec<FoodAnalysisTrigger>,
+    ) -> Result<Vec<FoodAnalysisTrigger>, CoreError> {
+        let mut created_triggers = Vec::new();
+
+        for trigger in triggers {
+            let active_model = TriggerActiveModel {
+                id: Set(trigger.id),
+                realm_id: Set(trigger.realm_id),
+                item_id: Set(trigger.item_id),
+                ingredient_name: Set(trigger.ingredient_name.clone()),
+                trigger_category: Set(trigger.trigger_category.clone()),
+                risk_level: Set(trigger.risk_level.clone()),
+                risk_reason: Set(trigger.risk_reason.clone()),
+                created_at: Set(trigger.created_at.fixed_offset()),
+                updated_at: Set(trigger.updated_at.fixed_offset()),
+                created_by: Set(trigger.created_by),
+                updated_by: Set(trigger.updated_by),
+            };
+
+            let created = TriggerEntity::insert(active_model)
+                .exec_with_returning(&self.db)
+                .await
+                .map_err(|e| {
+                    error!("Failed to create food analysis trigger: {}", e);
+                    CoreError::InternalServerError
+                })?;
+
+            created_triggers.push(FoodAnalysisTrigger::from(created));
+        }
+
+        Ok(created_triggers)
     }
 }

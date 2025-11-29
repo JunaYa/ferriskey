@@ -1,15 +1,17 @@
 use axum::{
     Extension,
     extract::{Multipart, Path, State},
-    http::HeaderMap,
 };
 use uuid::Uuid;
 
-use crate::application::http::{
-    food_analysis::handlers::analyze_food_text::AnalyzeFoodResponse,
-    server::{
-        api_entities::{api_error::ApiError, response::Response},
-        app_state::AppState,
+use crate::application::{
+    device_middleware::DeviceContext,
+    http::{
+        food_analysis::handlers::analyze_food_text::AnalyzeFoodResponse,
+        server::{
+            api_entities::{api_error::ApiError, response::Response},
+            app_state::AppState,
+        },
     },
 };
 use ferriskey_core::domain::{
@@ -38,7 +40,7 @@ pub async fn analyze_food_image(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
     Extension(identity): Extension<Identity>,
-    headers: HeaderMap,
+    Extension(device_context): Extension<DeviceContext>,
     mut multipart: Multipart,
 ) -> Result<Response<AnalyzeFoodResponse>, ApiError> {
     let mut prompt_id: Option<Uuid> = None;
@@ -86,12 +88,6 @@ pub async fn analyze_food_image(
     let image_data =
         image_data.ok_or_else(|| ApiError::BadRequest("Missing image field".to_string()))?;
 
-    let device_id = headers
-        .get("x-device-id")
-        .and_then(|h| h.to_str().ok())
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| identity.id().to_string());
-
     let result = state
         .service
         .analyze_food(
@@ -102,8 +98,8 @@ pub async fn analyze_food_image(
                 input_type: InputType::Image,
                 text_input: None,
                 image_data: Some(image_data),
-                device_id,
-                user_id: identity.id(),
+                device_id: device_context.device_id.clone(),
+                user_id: device_context.user_id,
             },
         )
         .await

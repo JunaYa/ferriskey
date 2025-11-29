@@ -3,12 +3,8 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use ferriskey_core::{
-    domain::{
-        authentication::value_objects::Identity,
-        device_profile::services::get_or_create_device_profile,
-        realm::entities::Realm,
-    },
+use ferriskey_core::domain::{
+    authentication::value_objects::Identity, device_profile::services::get_or_create_device_profile,
 };
 use tracing::error;
 use uuid::Uuid;
@@ -49,22 +45,30 @@ pub async fn device_middleware(
         .ok_or(axum::http::StatusCode::UNAUTHORIZED)?;
 
     // Extract realm_name from path
-    let realm_name = extract_realm_from_path(req.uri().path())
-        .ok_or(axum::http::StatusCode::BAD_REQUEST)?;
+    let realm_name =
+        extract_realm_from_path(req.uri().path()).ok_or(axum::http::StatusCode::BAD_REQUEST)?;
 
-    // Get realm directly from repository (bypassing service for middleware)
+    // Get realm using service
+    use ferriskey_core::domain::realm::ports::{GetRealmInput, RealmService};
+
     let realm = state
         .service
-        .realm_repository
-        .get_by_name(realm_name.clone())
+        .get_realm_by_name(
+            identity.clone(),
+            GetRealmInput {
+                realm_name: realm_name.clone(),
+            },
+        )
         .await
-        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(axum::http::StatusCode::NOT_FOUND)?;
+        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Get or create device profile
+    // We need user_repository, but it's private in Service
+    // Let's add it to AppState or create a helper method
+    // For now, let's add user_repository to AppState
     let device_profile = get_or_create_device_profile(
         &*state.device_profile_repository,
-        &*state.service.user_repository,
+        &*state.user_repository,
         realm,
         &device_id,
         identity,
@@ -87,11 +91,10 @@ pub async fn device_middleware(
 /// Extract realm name from path like "/realms/{realm_name}/..."
 fn extract_realm_from_path(path: &str) -> Option<String> {
     let parts: Vec<&str> = path.split('/').collect();
-    if let Some(realm_idx) = parts.iter().position(|&p| p == "realms") {
-        if realm_idx + 1 < parts.len() {
-            return Some(parts[realm_idx + 1].to_string());
-        }
+    if let Some(realm_idx) = parts.iter().position(|&p| p == "realms")
+        && realm_idx + 1 < parts.len()
+    {
+        return Some(parts[realm_idx + 1].to_string());
     }
     None
 }
-

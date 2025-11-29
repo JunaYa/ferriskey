@@ -5,7 +5,9 @@ use crate::domain::{
     authentication::value_objects::Identity,
     common::entities::app_errors::CoreError,
     food_analysis::{
-        entities::{FoodAnalysisRequest, FoodAnalysisResult},
+        entities::{
+            FoodAnalysisItem, FoodAnalysisRequest, FoodAnalysisResult, FoodAnalysisTrigger,
+        },
         value_objects::{
             AnalyzeFoodInput, GetFoodAnalysisFilter, GetFoodAnalysisHistoryInput,
             GetFoodAnalysisResultInput,
@@ -13,6 +15,34 @@ use crate::domain::{
     },
     realm::entities::Realm,
 };
+
+/// Repository trait for food analysis items
+#[cfg_attr(test, mockall::automock)]
+pub trait FoodAnalysisItemRepository: Send + Sync {
+    fn create_item(
+        &self,
+        item: FoodAnalysisItem,
+    ) -> impl Future<Output = Result<FoodAnalysisItem, CoreError>> + Send;
+
+    fn create_items_batch(
+        &self,
+        items: Vec<FoodAnalysisItem>,
+    ) -> impl Future<Output = Result<Vec<FoodAnalysisItem>, CoreError>> + Send;
+}
+
+/// Repository trait for food analysis triggers
+#[cfg_attr(test, mockall::automock)]
+pub trait FoodAnalysisTriggerRepository: Send + Sync {
+    fn create_trigger(
+        &self,
+        trigger: FoodAnalysisTrigger,
+    ) -> impl Future<Output = Result<FoodAnalysisTrigger, CoreError>> + Send;
+
+    fn create_triggers_batch(
+        &self,
+        triggers: Vec<FoodAnalysisTrigger>,
+    ) -> impl Future<Output = Result<Vec<FoodAnalysisTrigger>, CoreError>> + Send;
+}
 
 /// Repository trait for food analysis data access
 #[cfg_attr(test, mockall::automock)]
@@ -43,6 +73,16 @@ pub trait FoodAnalysisRepository: Send + Sync {
         realm_id: Uuid,
         filter: GetFoodAnalysisFilter,
     ) -> impl Future<Output = Result<Vec<FoodAnalysisRequest>, CoreError>> + Send;
+
+    fn create_items_batch(
+        &self,
+        items: Vec<FoodAnalysisItem>,
+    ) -> impl Future<Output = Result<Vec<FoodAnalysisItem>, CoreError>> + Send;
+
+    fn create_triggers_batch(
+        &self,
+        triggers: Vec<FoodAnalysisTrigger>,
+    ) -> impl Future<Output = Result<Vec<FoodAnalysisTrigger>, CoreError>> + Send;
 }
 
 /// LLM Client trait for calling AI models

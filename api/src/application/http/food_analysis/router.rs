@@ -4,7 +4,9 @@ use super::handlers::{
     get_analysis_history::{__path_get_analysis_history, get_analysis_history},
     get_analysis_result::{__path_get_analysis_result, get_analysis_result},
 };
-use crate::application::{auth::auth, http::server::app_state::AppState};
+use crate::application::{
+    auth::auth, device_middleware::device_middleware, http::server::app_state::AppState,
+};
 use axum::{
     Router, middleware,
     routing::{get, post},
@@ -51,4 +53,8 @@ pub fn food_analysis_routes(state: AppState) -> Router<AppState> {
             get(get_analysis_result),
         )
         .layer(middleware::from_fn_with_state(state.clone(), auth))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            device_middleware,
+        ))
 }

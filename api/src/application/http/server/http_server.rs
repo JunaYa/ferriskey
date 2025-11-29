@@ -29,6 +29,7 @@ use ferriskey_core::{
     infrastructure::{
         db::postgres::{Postgres, PostgresConfig},
         device_profile::PostgresDeviceProfileRepository,
+        user::repository::PostgresUserRepository,
     },
 };
 use tower_http::cors::CorsLayer;
@@ -54,8 +55,14 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
     );
     let postgres = Postgres::new(PostgresConfig { database_url }).await?;
     let device_profile_repository = PostgresDeviceProfileRepository::new(postgres.get_db());
+    let user_repository = PostgresUserRepository::new(postgres.get_db());
 
-    Ok(AppState::new(args, service, device_profile_repository))
+    Ok(AppState::new(
+        args,
+        service,
+        device_profile_repository,
+        user_repository,
+    ))
 }
 
 ///  Returns the [`Router`] of this application.

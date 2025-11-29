@@ -1,17 +1,19 @@
 use axum::{
     Extension,
     extract::{Path, State},
-    http::HeaderMap,
 };
 
-use crate::application::http::{
-    food_analysis::validators::AnalyzeFoodTextRequest,
-    server::{
-        api_entities::{
-            api_error::{ApiError, ValidateJson},
-            response::Response,
+use crate::application::{
+    device_middleware::DeviceContext,
+    http::{
+        food_analysis::validators::AnalyzeFoodTextRequest,
+        server::{
+            api_entities::{
+                api_error::{ApiError, ValidateJson},
+                response::Response,
+            },
+            app_state::AppState,
         },
-        app_state::AppState,
     },
 };
 use ferriskey_core::domain::{
@@ -48,15 +50,9 @@ pub async fn analyze_food_text(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
     Extension(identity): Extension<Identity>,
-    headers: HeaderMap,
+    Extension(device_context): Extension<DeviceContext>,
     ValidateJson(payload): ValidateJson<AnalyzeFoodTextRequest>,
 ) -> Result<Response<AnalyzeFoodResponse>, ApiError> {
-    let device_id = headers
-        .get("x-device-id")
-        .and_then(|h| h.to_str().ok())
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| identity.id().to_string());
-
     let result = state
         .service
         .analyze_food(
@@ -67,8 +63,8 @@ pub async fn analyze_food_text(
                 input_type: InputType::Text,
                 text_input: Some(payload.text_input),
                 image_data: None,
-                device_id,
-                user_id: identity.id(),
+                device_id: device_context.device_id.clone(),
+                user_id: device_context.user_id,
             },
         )
         .await

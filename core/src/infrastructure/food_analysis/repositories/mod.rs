@@ -1,1 +1,7 @@
+pub mod food_analysis_item_repository;
 pub mod food_analysis_repository;
+pub mod food_analysis_trigger_repository;
+
+pub use food_analysis_item_repository::PostgresFoodAnalysisItemRepository;
+pub use food_analysis_repository::PostgresFoodAnalysisRepository;
+pub use food_analysis_trigger_repository::PostgresFoodAnalysisTriggerRepository;

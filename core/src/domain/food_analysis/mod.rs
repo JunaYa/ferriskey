@@ -1,4 +1,5 @@
 pub mod entities;
+pub mod helpers;
 pub mod policies;
 pub mod ports;
 pub mod schema;

@@ -9,6 +9,7 @@ use crate::domain::{
     crypto::ports::HasherRepository,
     food_analysis::{
         entities::{DishAnalysis, FoodAnalysisRequest, FoodAnalysisResult, InputType},
+        helpers::create_items_and_triggers_from_dishes,
         ports::{FoodAnalysisPolicy, FoodAnalysisRepository, FoodAnalysisService, LLMClient},
         schema::get_food_analysis_schema,
         value_objects::{
@@ -151,12 +152,31 @@ where
         // 9. Create result record
         let result = FoodAnalysisResult::new(
             request.id,
-            dishes,
+            dishes.clone(),
             raw_response,
             identity.id(),
             identity.id(),
         );
         let result = self.food_analysis_repository.create_result(result).await?;
+
+        // 10. Create items and triggers from dishes
+        let (items, triggers) = create_items_and_triggers_from_dishes(
+            realm.id,
+            request.id,
+            result.id,
+            &dishes,
+            identity.id(),
+        );
+
+        // Create items in batch
+        self.food_analysis_repository
+            .create_items_batch(items)
+            .await?;
+
+        // Create triggers in batch
+        self.food_analysis_repository
+            .create_triggers_batch(triggers)
+            .await?;
 
         Ok(result)
     }
