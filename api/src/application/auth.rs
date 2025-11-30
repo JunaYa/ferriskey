@@ -134,24 +134,45 @@ pub async fn extract_token_from_bearer(parts: &mut Parts) -> Result<String, Auth
     Ok(bearer.token().to_string())
 }
 
+/// Optional auth middleware that supports both token-based and device-based authentication
+/// - If Bearer token is provided: validates token and sets Identity
+/// - If no token but X-Device-Id is provided: allows request to continue (device_middleware will handle)
 pub async fn auth(
     State(state): State<AppState>,
-    jwt: Jwt,
     mut req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    let claims = jwt.claims;
+    // Try to extract token from Authorization header (optional)
+    if let Some(auth_header) = req.headers().get("authorization")
+        && let Ok(auth_str) = auth_header.to_str()
+        && let Some(token) = auth_str.strip_prefix("Bearer ")
+        && !token.is_empty()
+    {
+        // Token-based authentication
+        let t: Vec<&str> = token.split('.').collect();
+        if t.len() == 3 {
+            let payload = t[1];
 
-    let output = state
-        .service
-        .authorize_request(AuthorizeRequestInput {
-            claims,
-            token: jwt.token,
-        })
-        .await
-        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+            if let Ok(decoded) = general_purpose::URL_SAFE_NO_PAD.decode(payload)
+                && let Ok(payload_str) = String::from_utf8(decoded)
+                && let Ok(claims) = serde_json::from_str::<JwtClaim>(&payload_str)
+            {
+                let output = state
+                    .service
+                    .authorize_request(AuthorizeRequestInput {
+                        claims,
+                        token: token.to_string(),
+                    })
+                    .await;
 
-    req.extensions_mut().insert(output.identity);
+                if let Ok(output) = output {
+                    req.extensions_mut().insert(output.identity);
+                }
+            }
+        }
+    }
+    // If no token or token validation failed, continue without Identity
+    // device_middleware will handle device-based authentication
 
     Ok(next.run(req).await)
 }

@@ -38,6 +38,7 @@ use ferriskey_core::{
         },
         food_reaction::PostgresFoodReactionRepository,
         food_stats::PostgresFoodStatsRepository,
+        realm::repositories::realm_postgres_repository::PostgresRealmRepository,
         user::repository::PostgresUserRepository,
     },
 };
@@ -65,6 +66,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
     let postgres = Postgres::new(PostgresConfig { database_url }).await?;
     let device_profile_repository = PostgresDeviceProfileRepository::new(postgres.get_db());
     let user_repository = PostgresUserRepository::new(postgres.get_db());
+    let realm_repository = PostgresRealmRepository::new(postgres.get_db());
     let item_repository = PostgresFoodAnalysisItemRepository::new(postgres.get_db());
     let trigger_repository = PostgresFoodAnalysisTriggerRepository::new(postgres.get_db());
     let reaction_repository = PostgresFoodReactionRepository::new(postgres.get_db());
@@ -75,6 +77,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
         service,
         device_profile_repository,
         user_repository,
+        realm_repository,
         item_repository,
         trigger_repository,
         reaction_repository,

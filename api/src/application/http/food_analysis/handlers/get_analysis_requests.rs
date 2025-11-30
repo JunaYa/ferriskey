@@ -20,6 +20,7 @@ use ferriskey_core::domain::{
         ports::FoodAnalysisService,
         value_objects::{GetFoodAnalysisFilter, GetFoodAnalysisHistoryInput},
     },
+    user::ports::UserRepository,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -49,10 +50,20 @@ pub struct GetAnalysisRequestsResponse {
 pub async fn get_analysis_requests(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
     Extension(device_context): Extension<DeviceContext>,
     QueryParamsExtractor(query_params): QueryParamsExtractor,
 ) -> Result<Response<GetAnalysisRequestsResponse>, ApiError> {
+    // Create Identity from DeviceContext (for device authentication mode)
+    let user = state
+        .user_repository
+        .get_by_id(device_context.user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get user: {}", e);
+            ApiError::InternalServerError(format!("Failed to get user: {}", e))
+        })?;
+
+    let identity = Identity::User(user);
     // Build filter from query params
     let mut filter = GetFoodAnalysisFilter {
         offset: Some(query_params.pagination.offset as u32),

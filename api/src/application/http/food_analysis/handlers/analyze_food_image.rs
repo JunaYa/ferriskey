@@ -19,6 +19,7 @@ use ferriskey_core::domain::{
     food_analysis::{
         entities::InputType, ports::FoodAnalysisService, value_objects::AnalyzeFoodInput,
     },
+    user::ports::UserRepository,
 };
 
 const MAX_IMAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
@@ -39,10 +40,20 @@ const MAX_IMAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 pub async fn analyze_food_image(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
     Extension(device_context): Extension<DeviceContext>,
     mut multipart: Multipart,
 ) -> Result<Response<AnalyzeFoodResponse>, ApiError> {
+    // Create Identity from DeviceContext (for device authentication mode)
+    let user = state
+        .user_repository
+        .get_by_id(device_context.user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get user: {}", e);
+            ApiError::InternalServerError(format!("Failed to get user: {}", e))
+        })?;
+
+    let identity = Identity::User(user);
     let mut prompt_id: Option<Uuid> = None;
     let mut image_data: Option<Vec<u8>> = None;
 
@@ -91,7 +102,7 @@ pub async fn analyze_food_image(
     let result = state
         .service
         .analyze_food(
-            identity.clone(),
+            identity,
             AnalyzeFoodInput {
                 realm_name,
                 prompt_id,

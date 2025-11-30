@@ -23,6 +23,7 @@ use ferriskey_core::domain::{
         ports::FoodAnalysisService,
         value_objects::AnalyzeFoodInput,
     },
+    user::ports::UserRepository,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -49,14 +50,25 @@ pub struct AnalyzeFoodResponse {
 pub async fn analyze_food_text(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
     Extension(device_context): Extension<DeviceContext>,
     ValidateJson(payload): ValidateJson<AnalyzeFoodTextRequest>,
 ) -> Result<Response<AnalyzeFoodResponse>, ApiError> {
+    // Create Identity from DeviceContext (for device authentication mode)
+    let user = state
+        .user_repository
+        .get_by_id(device_context.user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get user: {}", e);
+            ApiError::InternalServerError(format!("Failed to get user: {}", e))
+        })?;
+
+    let identity = Identity::User(user);
+
     let result = state
         .service
         .analyze_food(
-            identity.clone(),
+            identity,
             AnalyzeFoodInput {
                 realm_name,
                 prompt_id: payload.prompt_id,

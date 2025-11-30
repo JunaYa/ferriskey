@@ -3,9 +3,12 @@ use axum::{
     extract::{Path, State},
 };
 
-use crate::application::http::server::{
-    api_entities::{api_error::ApiError, response::Response},
-    app_state::AppState,
+use crate::application::{
+    device_middleware::DeviceContext,
+    http::server::{
+        api_entities::{api_error::ApiError, response::Response},
+        app_state::AppState,
+    },
 };
 use ferriskey_core::domain::{
     authentication::value_objects::Identity,
@@ -13,6 +16,7 @@ use ferriskey_core::domain::{
         entities::FoodAnalysisRequest, ports::FoodAnalysisService,
         value_objects::GetFoodAnalysisRequestInput,
     },
+    user::ports::UserRepository,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -41,8 +45,20 @@ pub struct GetAnalysisRequestResponse {
 pub async fn get_analysis_request(
     Path((realm_name, request_id)): Path<(String, Uuid)>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    Extension(device_context): Extension<DeviceContext>,
 ) -> Result<Response<GetAnalysisRequestResponse>, ApiError> {
+    // Create Identity from DeviceContext (for device authentication mode)
+    let user = state
+        .user_repository
+        .get_by_id(device_context.user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get user: {}", e);
+            ApiError::InternalServerError(format!("Failed to get user: {}", e))
+        })?;
+
+    let identity = Identity::User(user);
+
     let request = state
         .service
         .get_analysis_request(

@@ -14,12 +14,11 @@ use crate::application::{
     },
 };
 use ferriskey_core::domain::{
-    authentication::value_objects::Identity,
     food_analysis::{
         ports::FoodAnalysisTriggerRepository,
         value_objects::{GetTriggerCategoryFilter, TriggerCategoryStats},
     },
-    realm::ports::{GetRealmInput, RealmService},
+    realm::ports::RealmRepository,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -45,21 +44,22 @@ pub struct GetTriggerCategoriesResponse {
 pub async fn get_trigger_categories(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
     Extension(device_context): Extension<DeviceContext>,
     QueryParamsExtractor(query_params): QueryParamsExtractor,
 ) -> Result<Response<GetTriggerCategoriesResponse>, ApiError> {
     // Get realm
     let realm = state
-        .service
-        .get_realm_by_name(
-            identity.clone(),
-            GetRealmInput {
-                realm_name: realm_name.clone(),
-            },
-        )
+        .realm_repository
+        .get_by_name(realm_name.clone())
         .await
-        .map_err(ApiError::from)?;
+        .map_err(|e| {
+            tracing::error!("Failed to get realm: {}", e);
+            ApiError::InternalServerError(format!("Failed to get realm: {}", e))
+        })?
+        .ok_or_else(|| {
+            tracing::error!("Realm not found: {}", realm_name);
+            ApiError::NotFound(format!("Realm '{}' not found", realm_name))
+        })?;
 
     // Build filter from query params
     let mut filter = GetTriggerCategoryFilter {

@@ -3,14 +3,16 @@ use axum::{
     extract::{Path, State},
 };
 
-use crate::application::http::server::{
-    api_entities::{api_error::ApiError, response::Response},
-    app_state::AppState,
+use crate::application::{
+    device_middleware::DeviceContext,
+    http::server::{
+        api_entities::{api_error::ApiError, response::Response},
+        app_state::AppState,
+    },
 };
 use ferriskey_core::domain::{
-    authentication::value_objects::Identity,
     food_analysis::{entities::FoodAnalysisItem, ports::FoodAnalysisItemRepository},
-    realm::ports::{GetRealmInput, RealmService},
+    realm::ports::RealmRepository,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -39,19 +41,21 @@ pub struct GetAnalysisItemResponse {
 pub async fn get_analysis_item(
     Path((realm_name, item_id)): Path<(String, Uuid)>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    Extension(_device_context): Extension<DeviceContext>, // Required for device middleware
 ) -> Result<Response<GetAnalysisItemResponse>, ApiError> {
     // Get realm
     let realm = state
-        .service
-        .get_realm_by_name(
-            identity.clone(),
-            GetRealmInput {
-                realm_name: realm_name.clone(),
-            },
-        )
+        .realm_repository
+        .get_by_name(realm_name.clone())
         .await
-        .map_err(ApiError::from)?;
+        .map_err(|e| {
+            tracing::error!("Failed to get realm: {}", e);
+            ApiError::InternalServerError(format!("Failed to get realm: {}", e))
+        })?
+        .ok_or_else(|| {
+            tracing::error!("Realm not found: {}", realm_name);
+            ApiError::NotFound(format!("Realm '{}' not found", realm_name))
+        })?;
 
     // Get item
     let item = state

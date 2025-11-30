@@ -4,7 +4,10 @@ use axum::{
     response::Response,
 };
 use ferriskey_core::domain::{
-    authentication::value_objects::Identity, device_profile::services::get_or_create_device_profile,
+    authentication::value_objects::Identity,
+    device_profile::{ports::DeviceProfileRepository, services::get_or_create_device_profile},
+    realm::ports::RealmRepository,
+    user::ports::UserRepository,
 };
 use tracing::error;
 use uuid::Uuid;
@@ -38,46 +41,117 @@ pub async fn device_middleware(
             "default_device".to_string()
         });
 
-    // Extract identity from extensions (set by auth middleware)
-    let identity = req
-        .extensions()
-        .get::<Identity>()
-        .ok_or(axum::http::StatusCode::UNAUTHORIZED)?;
-
     // Extract realm_name from path
     let realm_name =
         extract_realm_from_path(req.uri().path()).ok_or(axum::http::StatusCode::BAD_REQUEST)?;
 
-    // Get realm using service
+    // Get realm - try to use Identity if available, otherwise get realm directly
     use ferriskey_core::domain::realm::ports::{GetRealmInput, RealmService};
 
-    let realm = state
-        .service
-        .get_realm_by_name(
-            identity.clone(),
-            GetRealmInput {
-                realm_name: realm_name.clone(),
-            },
-        )
-        .await
-        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+    let identity = req.extensions().get::<Identity>().cloned();
+    let realm = if let Some(ref identity) = identity {
+        // Token-based authentication: use Identity to get realm
+        state
+            .service
+            .get_realm_by_name(
+                identity.clone(),
+                GetRealmInput {
+                    realm_name: realm_name.clone(),
+                },
+            )
+            .await
+            .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+    } else {
+        // Device-based authentication: get realm directly from repository
+        state
+            .realm_repository
+            .get_by_name(realm_name.clone())
+            .await
+            .map_err(|e| {
+                error!("Failed to get realm: {}", e);
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .ok_or(axum::http::StatusCode::NOT_FOUND)?
+    };
 
     // Get or create device profile
-    // We need user_repository, but it's private in Service
-    // Let's add it to AppState or create a helper method
-    // For now, let's add user_repository to AppState
-    let device_profile = get_or_create_device_profile(
-        &*state.device_profile_repository,
-        &*state.user_repository,
-        realm,
-        &device_id,
-        identity,
-    )
-    .await
-    .map_err(|e| {
-        error!("Failed to get or create device profile: {}", e);
-        axum::http::StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    // If Identity exists, use it; otherwise, create a temporary identity for anonymous users
+    let device_profile = if let Some(ref identity) = identity {
+        // Token-based authentication: use existing Identity
+        get_or_create_device_profile(
+            &*state.device_profile_repository,
+            &*state.user_repository,
+            realm,
+            &device_id,
+            identity,
+        )
+        .await
+        .map_err(|e| {
+            error!("Failed to get or create device profile: {}", e);
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR
+        })?
+    } else {
+        // Device-based authentication: create anonymous user first, then device profile
+        // 1. Check if device profile already exists
+        if let Some(profile) = state
+            .device_profile_repository
+            .get_by_realm_and_device(realm.id, &device_id)
+            .await
+            .map_err(|e| {
+                error!("Failed to get device profile: {}", e);
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR
+            })?
+        {
+            profile
+        } else {
+            // 2. Create anonymous user
+            use ferriskey_core::domain::device_profile::services::{
+                generate_anonymous_email, generate_anonymous_name, generate_anonymous_username,
+            };
+            use ferriskey_core::domain::user::value_objects::CreateUserRequest;
+
+            let username = generate_anonymous_username(&device_id);
+            let email = generate_anonymous_email(&device_id);
+            let firstname = generate_anonymous_name(&device_id, "firstname");
+            let lastname = generate_anonymous_name(&device_id, "lastname");
+
+            let user = state
+                .user_repository
+                .create_user(CreateUserRequest {
+                    realm_id: realm.id,
+                    username: username.clone(),
+                    email,
+                    firstname,
+                    lastname,
+                    email_verified: false,
+                    enabled: true,
+                    client_id: None,
+                })
+                .await
+                .map_err(|e| {
+                    error!("Failed to create anonymous user: {}", e);
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+
+            // 3. Create device profile with user.id as created_by
+            use ferriskey_core::domain::device_profile::entities::DeviceProfile;
+            let device_profile = DeviceProfile::new(
+                realm.id,
+                device_id.to_string(),
+                user.id,
+                Some(user.id), // Use user.id as created_by for anonymous users
+            );
+
+            state
+                .device_profile_repository
+                .create(device_profile)
+                .await
+                .map_err(|e| {
+                    error!("Failed to create device profile: {}", e);
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR
+                })?
+        }
+    };
 
     // Store device context in request extensions
     req.extensions_mut().insert(DeviceContext {

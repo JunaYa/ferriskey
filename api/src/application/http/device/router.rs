@@ -1,5 +1,7 @@
 use super::handlers::{__path_get_device, get_device};
-use crate::application::{auth::auth, http::server::app_state::AppState};
+use crate::application::{
+    auth::auth, device_middleware::device_middleware, http::server::app_state::AppState,
+};
 use axum::{Router, middleware, routing::get};
 use utoipa::OpenApi;
 
@@ -17,4 +19,8 @@ pub fn device_routes(state: AppState) -> Router<AppState> {
             get(get_device),
         )
         .layer(middleware::from_fn_with_state(state.clone(), auth))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            device_middleware,
+        ))
 }
