@@ -7,6 +7,7 @@ use ferriskey_core::{
         food_analysis::repositories::{
             PostgresFoodAnalysisItemRepository, PostgresFoodAnalysisTriggerRepository,
         },
+        food_reaction::PostgresFoodReactionRepository,
         user::repository::PostgresUserRepository,
     },
 };
@@ -21,6 +22,7 @@ pub struct AppState {
     pub user_repository: Arc<PostgresUserRepository>,
     pub item_repository: Arc<PostgresFoodAnalysisItemRepository>,
     pub trigger_repository: Arc<PostgresFoodAnalysisTriggerRepository>,
+    pub reaction_repository: Arc<PostgresFoodReactionRepository>,
 }
 
 impl AppState {
@@ -31,6 +33,7 @@ impl AppState {
         user_repository: PostgresUserRepository,
         item_repository: PostgresFoodAnalysisItemRepository,
         trigger_repository: PostgresFoodAnalysisTriggerRepository,
+        reaction_repository: PostgresFoodReactionRepository,
     ) -> Self {
         Self {
             args,
@@ -39,6 +42,7 @@ impl AppState {
             user_repository: Arc::new(user_repository),
             item_repository: Arc::new(item_repository),
             trigger_repository: Arc::new(trigger_repository),
+            reaction_repository: Arc::new(reaction_repository),
         }
     }
 }

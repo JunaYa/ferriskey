@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::application::http::authentication::router::authentication_routes;
 use crate::application::http::client::router::client_routes;
-use crate::application::http::device::router::device_routes;
 use crate::application::http::file::router::file_routes;
 use crate::application::http::food_analysis::router::food_analysis_routes;
 use crate::application::http::prompt::router::prompt_routes;
@@ -14,6 +13,9 @@ use crate::application::http::server::openapi::ApiDoc;
 use crate::application::http::trident::router::trident_routes;
 use crate::application::http::user::router::user_routes;
 use crate::application::http::webhook::router::webhook_routes;
+use crate::application::http::{
+    device::router::device_routes, food_reaction::router::food_reaction_routes,
+};
 use crate::args::Args;
 
 use super::config::get_config;
@@ -33,6 +35,7 @@ use ferriskey_core::{
         food_analysis::repositories::{
             PostgresFoodAnalysisItemRepository, PostgresFoodAnalysisTriggerRepository,
         },
+        food_reaction::PostgresFoodReactionRepository,
         user::repository::PostgresUserRepository,
     },
 };
@@ -62,6 +65,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
     let user_repository = PostgresUserRepository::new(postgres.get_db());
     let item_repository = PostgresFoodAnalysisItemRepository::new(postgres.get_db());
     let trigger_repository = PostgresFoodAnalysisTriggerRepository::new(postgres.get_db());
+    let reaction_repository = PostgresFoodReactionRepository::new(postgres.get_db());
 
     Ok(AppState::new(
         args,
@@ -70,6 +74,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
         user_repository,
         item_repository,
         trigger_repository,
+        reaction_repository,
     ))
 }
 
@@ -150,6 +155,7 @@ pub fn router(state: AppState) -> Result<Router, anyhow::Error> {
         .merge(trident_routes(state.clone()))
         .merge(seawatch_router(state.clone()))
         .merge(device_routes(state.clone()))
+        .merge(food_reaction_routes(state.clone()))
         .merge(health_routes(&root_path))
         .route(
             &format!("{}/metrics", root_path),
