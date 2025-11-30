@@ -1,5 +1,6 @@
 pub mod authentication;
 pub mod client;
+pub mod device;
 
 pub mod error;
 pub mod file;
