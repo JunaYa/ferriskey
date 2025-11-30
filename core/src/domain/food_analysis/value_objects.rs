@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::domain::food_analysis::entities::SafetyLevel;
@@ -68,6 +70,36 @@ pub struct GetFoodAnalysisItemsInput {
     pub realm_name: String,
     pub user_id: Uuid,
     pub filter: GetFoodAnalysisItemFilter,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct GetFoodAnalysisTriggerFilter {
+    pub offset: Option<u32>,
+    pub limit: Option<u32>,
+    pub trigger_category: Option<String>,
+    pub risk_level: Option<String>, // 'HIGH' | 'MEDIUM' | 'LOW'
+    pub risk_level_in: Option<Vec<String>>, // Multiple risk levels
+    pub ingredient_name_ilike: Option<String>,
+    pub sort: Option<String>, // e.g., "risk_level,-created_at"
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct GetTriggerCategoryFilter {
+    pub offset: Option<u32>,
+    pub limit: Option<u32>,
+    pub trigger_category: Option<String>,
+    pub trigger_category_in: Option<Vec<String>>,
+    pub trigger_category_ilike: Option<String>,
+    pub sort: Option<String>, // e.g., "-count" or "trigger_category"
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq)]
+pub struct TriggerCategoryStats {
+    pub trigger_category: String,
+    pub count: i64,
+    pub high_risk_count: i64,
+    pub medium_risk_count: i64,
+    pub low_risk_count: i64,
 }
 
 #[derive(Debug, Clone)]

@@ -30,7 +30,9 @@ use ferriskey_core::{
     infrastructure::{
         db::postgres::{Postgres, PostgresConfig},
         device_profile::PostgresDeviceProfileRepository,
-        food_analysis::repositories::PostgresFoodAnalysisItemRepository,
+        food_analysis::repositories::{
+            PostgresFoodAnalysisItemRepository, PostgresFoodAnalysisTriggerRepository,
+        },
         user::repository::PostgresUserRepository,
     },
 };
@@ -59,6 +61,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
     let device_profile_repository = PostgresDeviceProfileRepository::new(postgres.get_db());
     let user_repository = PostgresUserRepository::new(postgres.get_db());
     let item_repository = PostgresFoodAnalysisItemRepository::new(postgres.get_db());
+    let trigger_repository = PostgresFoodAnalysisTriggerRepository::new(postgres.get_db());
 
     Ok(AppState::new(
         args,
@@ -66,6 +69,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
         device_profile_repository,
         user_repository,
         item_repository,
+        trigger_repository,
     ))
 }
 

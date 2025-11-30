@@ -7,3 +7,5 @@ pub mod get_analysis_items_by_request;
 pub mod get_analysis_request;
 pub mod get_analysis_requests;
 pub mod get_analysis_result;
+pub mod get_analysis_triggers;
+pub mod get_trigger_categories;

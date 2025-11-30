@@ -12,7 +12,8 @@ use crate::domain::{
             AnalyzeFoodInput, GetFoodAnalysisFilter, GetFoodAnalysisHistoryInput,
             GetFoodAnalysisItemFilter, GetFoodAnalysisItemInput,
             GetFoodAnalysisItemsByRequestInput, GetFoodAnalysisItemsInput,
-            GetFoodAnalysisRequestInput, GetFoodAnalysisResultInput,
+            GetFoodAnalysisRequestInput, GetFoodAnalysisResultInput, GetFoodAnalysisTriggerFilter,
+            GetTriggerCategoryFilter, TriggerCategoryStats,
         },
     },
     realm::entities::Realm,
@@ -64,6 +65,20 @@ pub trait FoodAnalysisTriggerRepository: Send + Sync {
         &self,
         triggers: Vec<FoodAnalysisTrigger>,
     ) -> impl Future<Output = Result<Vec<FoodAnalysisTrigger>, CoreError>> + Send;
+
+    fn get_by_item_id(
+        &self,
+        item_id: Uuid,
+        realm_id: Uuid,
+        filter: GetFoodAnalysisTriggerFilter,
+    ) -> impl Future<Output = Result<Vec<FoodAnalysisTrigger>, CoreError>> + Send;
+
+    fn get_categories_stats(
+        &self,
+        realm_id: Uuid,
+        user_id: Uuid,
+        filter: GetTriggerCategoryFilter,
+    ) -> impl Future<Output = Result<Vec<TriggerCategoryStats>, CoreError>> + Send;
 }
 
 /// Repository trait for food analysis data access

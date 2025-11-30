@@ -10,6 +10,8 @@ use super::handlers::{
     get_analysis_request::{__path_get_analysis_request, get_analysis_request},
     get_analysis_requests::{__path_get_analysis_requests, get_analysis_requests},
     get_analysis_result::{__path_get_analysis_result, get_analysis_result},
+    get_analysis_triggers::{__path_get_analysis_triggers, get_analysis_triggers},
+    get_trigger_categories::{__path_get_trigger_categories, get_trigger_categories},
 };
 use crate::application::{
     auth::auth, device_middleware::device_middleware, http::server::app_state::AppState,
@@ -30,7 +32,9 @@ use utoipa::OpenApi;
     get_analysis_result,
     get_analysis_items_by_request,
     get_analysis_item,
-    get_analysis_items
+    get_analysis_items,
+    get_analysis_triggers,
+    get_trigger_categories
 ))]
 pub struct FoodAnalysisApiDoc;
 
@@ -98,6 +102,20 @@ pub fn food_analysis_routes(state: AppState) -> Router<AppState> {
                 state.args.server.root_path
             ),
             get(get_analysis_items),
+        )
+        .route(
+            &format!(
+                "{}/realms/{{realm_name}}/food-analysis/items/{{item_id}}/triggers",
+                state.args.server.root_path
+            ),
+            get(get_analysis_triggers),
+        )
+        .route(
+            &format!(
+                "{}/realms/{{realm_name}}/food-analysis/triggers/categories",
+                state.args.server.root_path
+            ),
+            get(get_trigger_categories),
         )
         .layer(middleware::from_fn_with_state(state.clone(), auth))
         .layer(middleware::from_fn_with_state(
