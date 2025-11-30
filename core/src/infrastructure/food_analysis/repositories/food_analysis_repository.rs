@@ -139,10 +139,78 @@ impl FoodAnalysisRepository for PostgresFoodAnalysisRepository {
         realm_id: Uuid,
         filter: GetFoodAnalysisFilter,
     ) -> Result<Vec<FoodAnalysisRequest>, CoreError> {
-        let mut query = RequestEntity::find()
-            .filter(RequestColumn::RealmId.eq(realm_id))
-            .order_by_desc(RequestColumn::CreatedAt);
+        use sea_orm::{Condition, Order};
 
+        let mut query = RequestEntity::find().filter(RequestColumn::RealmId.eq(realm_id));
+
+        // Apply filters
+        let mut condition = Condition::all();
+
+        if let Some(prompt_id) = filter.prompt_id {
+            condition = condition.add(RequestColumn::PromptId.eq(prompt_id));
+        }
+
+        if let Some(ref input_type) = filter.input_type {
+            condition = condition.add(RequestColumn::InputType.eq(input_type.clone()));
+        }
+
+        if let Some(user_id) = filter.user_id {
+            condition = condition.add(RequestColumn::UserId.eq(user_id));
+        }
+
+        if let Some(created_at_gte) = filter.created_at_gte {
+            condition = condition.add(RequestColumn::CreatedAt.gte(created_at_gte.fixed_offset()));
+        }
+
+        if let Some(created_at_lte) = filter.created_at_lte {
+            condition = condition.add(RequestColumn::CreatedAt.lte(created_at_lte.fixed_offset()));
+        }
+
+        query = query.filter(condition);
+
+        // Apply sorting
+        if let Some(ref sort_str) = filter.sort {
+            // Parse sort string like "-created_at" or "created_at,prompt_id"
+            for sort_part in sort_str.split(',') {
+                let sort_part = sort_part.trim();
+                if let Some(field) = sort_part.strip_prefix('-') {
+                    match field {
+                        "created_at" => {
+                            query = query.order_by(RequestColumn::CreatedAt, Order::Desc);
+                        }
+                        "updated_at" => {
+                            query = query.order_by(RequestColumn::UpdatedAt, Order::Desc);
+                        }
+                        "prompt_id" => {
+                            query = query.order_by(RequestColumn::PromptId, Order::Desc);
+                        }
+                        _ => {
+                            // Unknown field, ignore
+                        }
+                    }
+                } else {
+                    match sort_part {
+                        "created_at" => {
+                            query = query.order_by(RequestColumn::CreatedAt, Order::Asc);
+                        }
+                        "updated_at" => {
+                            query = query.order_by(RequestColumn::UpdatedAt, Order::Asc);
+                        }
+                        "prompt_id" => {
+                            query = query.order_by(RequestColumn::PromptId, Order::Asc);
+                        }
+                        _ => {
+                            // Unknown field, ignore
+                        }
+                    }
+                }
+            }
+        } else {
+            // Default sort: -created_at
+            query = query.order_by_desc(RequestColumn::CreatedAt);
+        }
+
+        // Apply pagination
         if let Some(limit) = filter.limit {
             query = query.limit(limit as u64);
         }

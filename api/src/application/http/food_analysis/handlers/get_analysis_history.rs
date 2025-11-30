@@ -45,16 +45,17 @@ pub async fn get_analysis_history(
     Query(params): Query<GetAnalysisHistoryParams>,
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<GetAnalysisHistoryResponse>, ApiError> {
+    use ferriskey_core::domain::food_analysis::value_objects::GetFoodAnalysisFilter;
+
+    let filter = GetFoodAnalysisFilter {
+        offset: params.offset,
+        limit: params.limit,
+        ..Default::default()
+    };
+
     let requests = state
         .service
-        .get_analysis_history(
-            identity,
-            GetFoodAnalysisHistoryInput {
-                realm_name,
-                offset: params.offset,
-                limit: params.limit,
-            },
-        )
+        .get_analysis_history(identity, GetFoodAnalysisHistoryInput { realm_name, filter })
         .await
         .map_err(ApiError::from)?;
 

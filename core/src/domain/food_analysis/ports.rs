@@ -10,7 +10,7 @@ use crate::domain::{
         },
         value_objects::{
             AnalyzeFoodInput, GetFoodAnalysisFilter, GetFoodAnalysisHistoryInput,
-            GetFoodAnalysisResultInput,
+            GetFoodAnalysisRequestInput, GetFoodAnalysisResultInput,
         },
     },
     realm::entities::Realm,
@@ -122,6 +122,12 @@ pub trait FoodAnalysisService: Send + Sync {
         identity: Identity,
         input: GetFoodAnalysisResultInput,
     ) -> impl Future<Output = Result<FoodAnalysisResult, CoreError>> + Send;
+
+    fn get_analysis_request(
+        &self,
+        identity: Identity,
+        input: GetFoodAnalysisRequestInput,
+    ) -> impl Future<Output = Result<FoodAnalysisRequest, CoreError>> + Send;
 }
 
 /// Policy trait for food analysis authorization

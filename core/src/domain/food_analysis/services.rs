@@ -13,7 +13,8 @@ use crate::domain::{
         ports::{FoodAnalysisPolicy, FoodAnalysisRepository, FoodAnalysisService, LLMClient},
         schema::get_food_analysis_schema,
         value_objects::{
-            AnalyzeFoodInput, GetFoodAnalysisHistoryInput, GetFoodAnalysisResultInput,
+            AnalyzeFoodInput, GetFoodAnalysisHistoryInput, GetFoodAnalysisRequestInput,
+            GetFoodAnalysisResultInput,
         },
     },
     health::ports::HealthCheckRepository,
@@ -198,10 +199,7 @@ where
             "insufficient permissions to view analysis history",
         )?;
 
-        let filter = crate::domain::food_analysis::value_objects::GetFoodAnalysisFilter {
-            offset: input.offset,
-            limit: input.limit,
-        };
+        let filter = input.filter;
 
         let requests = self
             .food_analysis_repository
@@ -209,6 +207,33 @@ where
             .await?;
 
         Ok(requests)
+    }
+
+    async fn get_analysis_request(
+        &self,
+        identity: Identity,
+        input: GetFoodAnalysisRequestInput,
+    ) -> Result<FoodAnalysisRequest, CoreError> {
+        let realm = self
+            .realm_repository
+            .get_by_name(input.realm_name)
+            .await
+            .map_err(|_| CoreError::InvalidRealm)?
+            .ok_or(CoreError::InvalidRealm)?;
+
+        ensure_policy(
+            self.policy.can_view_analysis(identity, realm.clone()).await,
+            "insufficient permissions to view analysis",
+        )?;
+
+        // Get request and verify it belongs to realm
+        let request = self
+            .food_analysis_repository
+            .get_request_by_id(input.request_id, realm.id)
+            .await?
+            .ok_or(CoreError::NotFound)?;
+
+        Ok(request)
     }
 
     async fn get_analysis_result(

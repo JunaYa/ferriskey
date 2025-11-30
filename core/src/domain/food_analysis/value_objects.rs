@@ -2,21 +2,32 @@ use uuid::Uuid;
 
 use crate::domain::food_analysis::entities::SafetyLevel;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct GetFoodAnalysisFilter {
     pub offset: Option<u32>,
     pub limit: Option<u32>,
+    pub prompt_id: Option<Uuid>,
+    pub input_type: Option<String>, // 'image' | 'text'
+    pub user_id: Option<Uuid>,
+    pub created_at_gte: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at_lte: Option<chrono::DateTime<chrono::Utc>>,
+    pub sort: Option<String>, // e.g., "-created_at" or "created_at,prompt_id"
 }
 
 #[derive(Debug, Clone)]
 pub struct GetFoodAnalysisHistoryInput {
     pub realm_name: String,
-    pub offset: Option<u32>,
-    pub limit: Option<u32>,
+    pub filter: GetFoodAnalysisFilter,
 }
 
 #[derive(Debug, Clone)]
 pub struct GetFoodAnalysisResultInput {
+    pub realm_name: String,
+    pub request_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetFoodAnalysisRequestInput {
     pub realm_name: String,
     pub request_id: Uuid,
 }
