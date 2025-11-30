@@ -1,6 +1,9 @@
 pub mod analyze_food_image;
 pub mod analyze_food_text;
 pub mod get_analysis_history;
+pub mod get_analysis_item;
+pub mod get_analysis_items;
+pub mod get_analysis_items_by_request;
 pub mod get_analysis_request;
 pub mod get_analysis_requests;
 pub mod get_analysis_result;

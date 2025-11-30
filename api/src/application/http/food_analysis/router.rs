@@ -2,6 +2,11 @@ use super::handlers::{
     analyze_food_image::{__path_analyze_food_image, analyze_food_image},
     analyze_food_text::{__path_analyze_food_text, analyze_food_text},
     get_analysis_history::{__path_get_analysis_history, get_analysis_history},
+    get_analysis_item::{__path_get_analysis_item, get_analysis_item},
+    get_analysis_items::{__path_get_analysis_items, get_analysis_items},
+    get_analysis_items_by_request::{
+        __path_get_analysis_items_by_request, get_analysis_items_by_request,
+    },
     get_analysis_request::{__path_get_analysis_request, get_analysis_request},
     get_analysis_requests::{__path_get_analysis_requests, get_analysis_requests},
     get_analysis_result::{__path_get_analysis_result, get_analysis_result},
@@ -22,7 +27,10 @@ use utoipa::OpenApi;
     get_analysis_history,
     get_analysis_requests,
     get_analysis_request,
-    get_analysis_result
+    get_analysis_result,
+    get_analysis_items_by_request,
+    get_analysis_item,
+    get_analysis_items
 ))]
 pub struct FoodAnalysisApiDoc;
 
@@ -69,6 +77,27 @@ pub fn food_analysis_routes(state: AppState) -> Router<AppState> {
                 state.args.server.root_path
             ),
             get(get_analysis_result),
+        )
+        .route(
+            &format!(
+                "{}/realms/{{realm_name}}/food-analysis/requests/{{request_id}}/items",
+                state.args.server.root_path
+            ),
+            get(get_analysis_items_by_request),
+        )
+        .route(
+            &format!(
+                "{}/realms/{{realm_name}}/food-analysis/items/{{item_id}}",
+                state.args.server.root_path
+            ),
+            get(get_analysis_item),
+        )
+        .route(
+            &format!(
+                "{}/realms/{{realm_name}}/food-analysis/items",
+                state.args.server.root_path
+            ),
+            get(get_analysis_items),
         )
         .layer(middleware::from_fn_with_state(state.clone(), auth))
         .layer(middleware::from_fn_with_state(

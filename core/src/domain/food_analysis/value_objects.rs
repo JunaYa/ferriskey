@@ -14,6 +14,23 @@ pub struct GetFoodAnalysisFilter {
     pub sort: Option<String>, // e.g., "-created_at" or "created_at,prompt_id"
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct GetFoodAnalysisItemFilter {
+    pub offset: Option<u32>,
+    pub limit: Option<u32>,
+    pub request_id: Option<Uuid>,
+    pub risk_band: Option<String>, // 'SAFE' | 'MODERATE' | 'HIGH'
+    pub risk_band_in: Option<Vec<String>>, // Multiple risk bands
+    pub safety_level: Option<String>, // 'SAFE' | 'CAUTION' | 'UNSAFE'
+    pub risk_score_gte: Option<i32>,
+    pub risk_score_lte: Option<i32>,
+    pub dish_name_ilike: Option<String>,
+    pub created_at_gte: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at_lte: Option<chrono::DateTime<chrono::Utc>>,
+    pub sort: Option<String>, // e.g., "dish_index" or "-risk_score,dish_name"
+    pub include_reaction_info: bool, // Whether to include reaction_info in results
+}
+
 #[derive(Debug, Clone)]
 pub struct GetFoodAnalysisHistoryInput {
     pub realm_name: String,
@@ -30,6 +47,27 @@ pub struct GetFoodAnalysisResultInput {
 pub struct GetFoodAnalysisRequestInput {
     pub realm_name: String,
     pub request_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetFoodAnalysisItemsByRequestInput {
+    pub realm_name: String,
+    pub request_id: Uuid,
+    pub user_id: Uuid,
+    pub filter: GetFoodAnalysisItemFilter,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetFoodAnalysisItemInput {
+    pub realm_name: String,
+    pub item_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetFoodAnalysisItemsInput {
+    pub realm_name: String,
+    pub user_id: Uuid,
+    pub filter: GetFoodAnalysisItemFilter,
 }
 
 #[derive(Debug, Clone)]

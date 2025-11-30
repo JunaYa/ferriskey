@@ -10,6 +10,8 @@ use crate::domain::{
         },
         value_objects::{
             AnalyzeFoodInput, GetFoodAnalysisFilter, GetFoodAnalysisHistoryInput,
+            GetFoodAnalysisItemFilter, GetFoodAnalysisItemInput,
+            GetFoodAnalysisItemsByRequestInput, GetFoodAnalysisItemsInput,
             GetFoodAnalysisRequestInput, GetFoodAnalysisResultInput,
         },
     },
@@ -27,6 +29,26 @@ pub trait FoodAnalysisItemRepository: Send + Sync {
     fn create_items_batch(
         &self,
         items: Vec<FoodAnalysisItem>,
+    ) -> impl Future<Output = Result<Vec<FoodAnalysisItem>, CoreError>> + Send;
+
+    fn get_by_id(
+        &self,
+        item_id: Uuid,
+        realm_id: Uuid,
+    ) -> impl Future<Output = Result<Option<FoodAnalysisItem>, CoreError>> + Send;
+
+    fn get_by_request_id(
+        &self,
+        request_id: Uuid,
+        realm_id: Uuid,
+        user_id: Uuid,
+    ) -> impl Future<Output = Result<Vec<FoodAnalysisItem>, CoreError>> + Send;
+
+    fn get_by_realm(
+        &self,
+        realm_id: Uuid,
+        user_id: Uuid,
+        filter: GetFoodAnalysisItemFilter,
     ) -> impl Future<Output = Result<Vec<FoodAnalysisItem>, CoreError>> + Send;
 }
 
@@ -128,6 +150,24 @@ pub trait FoodAnalysisService: Send + Sync {
         identity: Identity,
         input: GetFoodAnalysisRequestInput,
     ) -> impl Future<Output = Result<FoodAnalysisRequest, CoreError>> + Send;
+
+    fn get_analysis_items_by_request(
+        &self,
+        identity: Identity,
+        input: GetFoodAnalysisItemsByRequestInput,
+    ) -> impl Future<Output = Result<Vec<FoodAnalysisItem>, CoreError>> + Send;
+
+    fn get_analysis_item(
+        &self,
+        identity: Identity,
+        input: GetFoodAnalysisItemInput,
+    ) -> impl Future<Output = Result<FoodAnalysisItem, CoreError>> + Send;
+
+    fn get_analysis_items(
+        &self,
+        identity: Identity,
+        input: GetFoodAnalysisItemsInput,
+    ) -> impl Future<Output = Result<Vec<FoodAnalysisItem>, CoreError>> + Send;
 }
 
 /// Policy trait for food analysis authorization

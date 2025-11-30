@@ -8,13 +8,16 @@ use crate::domain::{
     credential::ports::CredentialRepository,
     crypto::ports::HasherRepository,
     food_analysis::{
-        entities::{DishAnalysis, FoodAnalysisRequest, FoodAnalysisResult, InputType},
+        entities::{
+            DishAnalysis, FoodAnalysisItem, FoodAnalysisRequest, FoodAnalysisResult, InputType,
+        },
         helpers::create_items_and_triggers_from_dishes,
         ports::{FoodAnalysisPolicy, FoodAnalysisRepository, FoodAnalysisService, LLMClient},
         schema::get_food_analysis_schema,
         value_objects::{
-            AnalyzeFoodInput, GetFoodAnalysisHistoryInput, GetFoodAnalysisRequestInput,
-            GetFoodAnalysisResultInput,
+            AnalyzeFoodInput, GetFoodAnalysisHistoryInput, GetFoodAnalysisItemInput,
+            GetFoodAnalysisItemsByRequestInput, GetFoodAnalysisItemsInput,
+            GetFoodAnalysisRequestInput, GetFoodAnalysisResultInput,
         },
     },
     health::ports::HealthCheckRepository,
@@ -267,5 +270,32 @@ where
             .ok_or(CoreError::NotFound)?;
 
         Ok(result)
+    }
+
+    async fn get_analysis_items_by_request(
+        &self,
+        _identity: Identity,
+        _input: GetFoodAnalysisItemsByRequestInput,
+    ) -> Result<Vec<FoodAnalysisItem>, CoreError> {
+        // This will be implemented in handlers using item_repository from AppState
+        Err(CoreError::InternalServerError)
+    }
+
+    async fn get_analysis_item(
+        &self,
+        _identity: Identity,
+        _input: GetFoodAnalysisItemInput,
+    ) -> Result<FoodAnalysisItem, CoreError> {
+        // This will be implemented in handlers using item_repository from AppState
+        Err(CoreError::InternalServerError)
+    }
+
+    async fn get_analysis_items(
+        &self,
+        _identity: Identity,
+        _input: GetFoodAnalysisItemsInput,
+    ) -> Result<Vec<FoodAnalysisItem>, CoreError> {
+        // This will be implemented in handlers using item_repository from AppState
+        Err(CoreError::InternalServerError)
     }
 }
