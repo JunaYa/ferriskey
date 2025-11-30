@@ -8,6 +8,7 @@ use ferriskey_core::{
             PostgresFoodAnalysisItemRepository, PostgresFoodAnalysisTriggerRepository,
         },
         food_reaction::PostgresFoodReactionRepository,
+        food_stats::PostgresFoodStatsRepository,
         user::repository::PostgresUserRepository,
     },
 };
@@ -23,9 +24,11 @@ pub struct AppState {
     pub item_repository: Arc<PostgresFoodAnalysisItemRepository>,
     pub trigger_repository: Arc<PostgresFoodAnalysisTriggerRepository>,
     pub reaction_repository: Arc<PostgresFoodReactionRepository>,
+    pub stats_repository: Arc<PostgresFoodStatsRepository>,
 }
 
 impl AppState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         args: Arc<Args>,
         service: FerrisKeyService,
@@ -34,6 +37,7 @@ impl AppState {
         item_repository: PostgresFoodAnalysisItemRepository,
         trigger_repository: PostgresFoodAnalysisTriggerRepository,
         reaction_repository: PostgresFoodReactionRepository,
+        stats_repository: PostgresFoodStatsRepository,
     ) -> Self {
         Self {
             args,
@@ -43,6 +47,7 @@ impl AppState {
             item_repository: Arc::new(item_repository),
             trigger_repository: Arc::new(trigger_repository),
             reaction_repository: Arc::new(reaction_repository),
+            stats_repository: Arc::new(stats_repository),
         }
     }
 }

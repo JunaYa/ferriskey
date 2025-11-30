@@ -6,6 +6,7 @@ pub mod crypto;
 pub mod device_profile;
 pub mod food_analysis;
 pub mod food_reaction;
+pub mod food_stats;
 pub mod health;
 pub mod jwt;
 pub mod prompt;

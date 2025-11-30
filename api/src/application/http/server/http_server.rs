@@ -15,6 +15,7 @@ use crate::application::http::user::router::user_routes;
 use crate::application::http::webhook::router::webhook_routes;
 use crate::application::http::{
     device::router::device_routes, food_reaction::router::food_reaction_routes,
+    food_stats::router::food_stats_routes,
 };
 use crate::args::Args;
 
@@ -36,6 +37,7 @@ use ferriskey_core::{
             PostgresFoodAnalysisItemRepository, PostgresFoodAnalysisTriggerRepository,
         },
         food_reaction::PostgresFoodReactionRepository,
+        food_stats::PostgresFoodStatsRepository,
         user::repository::PostgresUserRepository,
     },
 };
@@ -66,6 +68,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
     let item_repository = PostgresFoodAnalysisItemRepository::new(postgres.get_db());
     let trigger_repository = PostgresFoodAnalysisTriggerRepository::new(postgres.get_db());
     let reaction_repository = PostgresFoodReactionRepository::new(postgres.get_db());
+    let stats_repository = PostgresFoodStatsRepository::new(postgres.get_db());
 
     Ok(AppState::new(
         args,
@@ -75,6 +78,7 @@ pub async fn state(args: Arc<Args>) -> Result<AppState, anyhow::Error> {
         item_repository,
         trigger_repository,
         reaction_repository,
+        stats_repository,
     ))
 }
 
@@ -156,6 +160,7 @@ pub fn router(state: AppState) -> Result<Router, anyhow::Error> {
         .merge(seawatch_router(state.clone()))
         .merge(device_routes(state.clone()))
         .merge(food_reaction_routes(state.clone()))
+        .merge(food_stats_routes(state.clone()))
         .merge(health_routes(&root_path))
         .route(
             &format!("{}/metrics", root_path),

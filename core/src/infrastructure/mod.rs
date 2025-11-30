@@ -4,6 +4,7 @@ pub mod db;
 pub mod device_profile;
 pub mod food_analysis;
 pub mod food_reaction;
+pub mod food_stats;
 pub mod health;
 pub mod llm;
 pub mod object_storage;

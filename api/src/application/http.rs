@@ -2,6 +2,7 @@ pub mod authentication;
 pub mod client;
 pub mod device;
 pub mod food_reaction;
+pub mod food_stats;
 
 pub mod error;
 pub mod file;
