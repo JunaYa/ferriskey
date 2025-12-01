@@ -13,7 +13,8 @@ use crate::application::{
 use ferriskey_core::domain::{
     authentication::value_objects::Identity,
     food_reaction::{entities::FoodReaction, ports::FoodReactionRepository},
-    realm::ports::{GetRealmInput, RealmService},
+    realm::ports::RealmRepository,
+    user::ports::UserRepository,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -81,21 +82,34 @@ impl From<FoodReaction> for UpdateReactionResponse {
 pub async fn update_reaction(
     Path((realm_name, reaction_id)): Path<(String, Uuid)>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
     Extension(device_context): Extension<DeviceContext>,
     Json(request): Json<UpdateReactionRequest>,
 ) -> Result<Response<UpdateReactionResponse>, ApiError> {
+    // Create Identity from DeviceContext (for device authentication mode)
+    let user = state
+        .user_repository
+        .get_by_id(device_context.user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get user: {}", e);
+            ApiError::InternalServerError(format!("Failed to get user: {}", e))
+        })?;
+
+    let identity = Identity::User(user);
+
     // Get realm
     let realm = state
-        .service
-        .get_realm_by_name(
-            identity.clone(),
-            GetRealmInput {
-                realm_name: realm_name.clone(),
-            },
-        )
+        .realm_repository
+        .get_by_name(realm_name.clone())
         .await
-        .map_err(ApiError::from)?;
+        .map_err(|e| {
+            tracing::error!("Failed to get realm: {}", e);
+            ApiError::InternalServerError(format!("Failed to get realm: {}", e))
+        })?
+        .ok_or_else(|| {
+            tracing::error!("Realm not found: {}", realm_name);
+            ApiError::NotFound(format!("Realm '{}' not found", realm_name))
+        })?;
 
     // Get existing reaction
     let mut reaction = state

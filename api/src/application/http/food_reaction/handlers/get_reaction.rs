@@ -11,9 +11,8 @@ use crate::application::{
     },
 };
 use ferriskey_core::domain::{
-    authentication::value_objects::Identity,
     food_reaction::{entities::FoodReaction, ports::FoodReactionRepository},
-    realm::ports::{GetRealmInput, RealmService},
+    realm::ports::RealmRepository,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -72,20 +71,21 @@ impl From<FoodReaction> for GetReactionResponse {
 pub async fn get_reaction(
     Path((realm_name, reaction_id)): Path<(String, Uuid)>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
     Extension(device_context): Extension<DeviceContext>,
 ) -> Result<Response<GetReactionResponse>, ApiError> {
     // Get realm
     let realm = state
-        .service
-        .get_realm_by_name(
-            identity.clone(),
-            GetRealmInput {
-                realm_name: realm_name.clone(),
-            },
-        )
+        .realm_repository
+        .get_by_name(realm_name.clone())
         .await
-        .map_err(ApiError::from)?;
+        .map_err(|e| {
+            tracing::error!("Failed to get realm: {}", e);
+            ApiError::InternalServerError(format!("Failed to get realm: {}", e))
+        })?
+        .ok_or_else(|| {
+            tracing::error!("Realm not found: {}", realm_name);
+            ApiError::NotFound(format!("Realm '{}' not found", realm_name))
+        })?;
 
     // Get reaction
     let reaction = state

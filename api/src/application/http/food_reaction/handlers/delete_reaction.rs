@@ -9,9 +9,7 @@ use crate::application::{
     http::server::{api_entities::api_error::ApiError, app_state::AppState},
 };
 use ferriskey_core::domain::{
-    authentication::value_objects::Identity,
-    food_reaction::ports::FoodReactionRepository,
-    realm::ports::{GetRealmInput, RealmService},
+    food_reaction::ports::FoodReactionRepository, realm::ports::RealmRepository,
 };
 use uuid::Uuid;
 
@@ -33,20 +31,21 @@ use uuid::Uuid;
 pub async fn delete_reaction(
     Path((realm_name, reaction_id)): Path<(String, Uuid)>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
     Extension(device_context): Extension<DeviceContext>,
 ) -> Result<StatusCode, ApiError> {
     // Get realm
     let realm = state
-        .service
-        .get_realm_by_name(
-            identity.clone(),
-            GetRealmInput {
-                realm_name: realm_name.clone(),
-            },
-        )
+        .realm_repository
+        .get_by_name(realm_name.clone())
         .await
-        .map_err(ApiError::from)?;
+        .map_err(|e| {
+            tracing::error!("Failed to get realm: {}", e);
+            ApiError::InternalServerError(format!("Failed to get realm: {}", e))
+        })?
+        .ok_or_else(|| {
+            tracing::error!("Realm not found: {}", realm_name);
+            ApiError::NotFound(format!("Realm '{}' not found", realm_name))
+        })?;
 
     // Verify reaction exists
     let _reaction = state
