@@ -4,6 +4,7 @@ use axum::{
 };
 
 use crate::application::{
+    auth::RequiredIdentity,
     device_middleware::DeviceContext,
     http::server::{
         api_entities::{api_error::ApiError, response::Response},
@@ -11,10 +12,8 @@ use crate::application::{
     },
 };
 use ferriskey_core::domain::{
-    authentication::value_objects::Identity,
     food_reaction::{entities::FoodReaction, ports::FoodReactionRepository},
     realm::ports::RealmRepository,
-    user::ports::UserRepository,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -66,7 +65,7 @@ impl From<FoodReaction> for CreateReactionResponse {
 
 #[utoipa::path(
     post,
-    path = "/food-reactions",
+    path = "",
     tag = "food-reaction",
     summary = "Create food reaction",
     description = "Create a new food reaction record",
@@ -83,21 +82,10 @@ impl From<FoodReaction> for CreateReactionResponse {
 pub async fn create_reaction(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
+    RequiredIdentity(identity): RequiredIdentity,
     Extension(device_context): Extension<DeviceContext>,
     Json(request): Json<CreateReactionRequest>,
 ) -> Result<Response<CreateReactionResponse>, ApiError> {
-    // Create Identity from DeviceContext (for device authentication mode)
-    let user = state
-        .user_repository
-        .get_by_id(device_context.user_id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to get user: {}", e);
-            ApiError::InternalServerError(format!("Failed to get user: {}", e))
-        })?;
-
-    let identity = Identity::User(user);
-
     // Get realm
     let realm = state
         .realm_repository

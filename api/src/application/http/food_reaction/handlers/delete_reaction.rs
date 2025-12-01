@@ -5,6 +5,7 @@ use axum::{
 };
 
 use crate::application::{
+    auth::RequiredIdentity,
     device_middleware::DeviceContext,
     http::server::{api_entities::api_error::ApiError, app_state::AppState},
 };
@@ -15,7 +16,7 @@ use uuid::Uuid;
 
 #[utoipa::path(
     delete,
-    path = "/food-reactions/{reaction_id}",
+    path = "/{reaction_id}",
     tag = "food-reaction",
     summary = "Delete food reaction",
     description = "Delete a food reaction",
@@ -31,6 +32,7 @@ use uuid::Uuid;
 pub async fn delete_reaction(
     Path((realm_name, reaction_id)): Path<(String, Uuid)>,
     State(state): State<AppState>,
+    RequiredIdentity(_identity): RequiredIdentity,
     Extension(device_context): Extension<DeviceContext>,
 ) -> Result<StatusCode, ApiError> {
     // Get realm
