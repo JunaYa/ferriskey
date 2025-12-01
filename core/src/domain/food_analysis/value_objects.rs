@@ -105,7 +105,7 @@ pub struct TriggerCategoryStats {
 #[derive(Debug, Clone)]
 pub struct AnalyzeFoodInput {
     pub realm_name: String,
-    pub prompt_id: Uuid,
+    pub prompt_id: Option<Uuid>,
     pub input_type: crate::domain::food_analysis::entities::InputType,
     pub text_input: Option<String>,
     pub image_data: Option<Vec<u8>>,

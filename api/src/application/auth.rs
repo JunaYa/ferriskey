@@ -10,12 +10,27 @@ use axum_extra::{
     headers::{Authorization, authorization::Bearer},
 };
 use base64::{Engine, engine::general_purpose};
-use ferriskey_core::domain::authentication::{entities::AuthorizeRequestInput, ports::AuthService};
-use ferriskey_core::domain::jwt::entities::JwtClaim;
+use ferriskey_core::domain::{
+    authentication::{
+        entities::AuthorizeRequestInput, ports::AuthService, value_objects::Identity,
+    },
+    device_profile::{
+        entities::DeviceProfile,
+        ports::DeviceProfileRepository,
+        services::{
+            generate_anonymous_email, generate_anonymous_name, generate_anonymous_username,
+        },
+    },
+    jwt::entities::JwtClaim,
+    realm::ports::RealmRepository,
+    user::{ports::UserRepository, value_objects::CreateUserRequest},
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tracing::error;
+use uuid::Uuid;
 
-use super::http::server::app_state::AppState;
+use super::http::server::{api_entities::api_error::ApiError, app_state::AppState};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Jwt {
@@ -175,4 +190,174 @@ pub async fn auth(
     // device_middleware will handle device-based authentication
 
     Ok(next.run(req).await)
+}
+
+/// Extract realm name from path like "/realms/{realm_name}/..."
+fn extract_realm_from_path(path: &str) -> Option<String> {
+    let parts: Vec<&str> = path.split('/').collect();
+    if let Some(realm_idx) = parts.iter().position(|&p| p == "realms")
+        && realm_idx + 1 < parts.len()
+    {
+        return Some(parts[realm_idx + 1].to_string());
+    }
+    None
+}
+
+/// Get admin user ID for a given realm
+async fn get_admin_user_id(
+    user_repository: &ferriskey_core::infrastructure::user::repository::PostgresUserRepository,
+    realm_id: Uuid,
+) -> Result<Uuid, ApiError> {
+    let admin_user = user_repository
+        .get_by_username("admin".to_string(), realm_id)
+        .await
+        .map_err(|e| {
+            error!("Failed to get admin user: {}", e);
+            ApiError::InternalServerError("Failed to get admin user".to_string())
+        })?;
+
+    Ok(admin_user.id)
+}
+
+/// Create Identity from device_id
+async fn create_identity_from_device(
+    state: &AppState,
+    device_id: &str,
+    realm_name: &str,
+) -> Result<Identity, ApiError> {
+    // 1. Get realm
+    let realm = state
+        .realm_repository
+        .get_by_name(realm_name.to_string())
+        .await
+        .map_err(|e| {
+            error!("Failed to get realm: {}", e);
+            ApiError::InternalServerError("Failed to get realm".to_string())
+        })?
+        .ok_or_else(|| {
+            error!("Realm not found: {}", realm_name);
+            ApiError::NotFound(format!("Realm '{}' not found", realm_name))
+        })?;
+
+    // 2. Get or create device profile
+    let device_profile = if let Some(profile) = state
+        .device_profile_repository
+        .get_by_realm_and_device(realm.id, device_id)
+        .await
+        .map_err(|e| {
+            error!("Failed to get device profile: {}", e);
+            ApiError::InternalServerError("Failed to get device profile".to_string())
+        })? {
+        profile
+    } else {
+        // Device profile doesn't exist, create anonymous user and device profile
+        // 2.1 Get admin user ID for created_by
+        let admin_user_id = get_admin_user_id(&state.user_repository, realm.id).await?;
+
+        // 2.2 Create anonymous user
+        let username = generate_anonymous_username(device_id);
+        let email = generate_anonymous_email(device_id);
+        let firstname = generate_anonymous_name(device_id, "firstname");
+        let lastname = generate_anonymous_name(device_id, "lastname");
+
+        let user = state
+            .user_repository
+            .create_user(CreateUserRequest {
+                realm_id: realm.id,
+                username: username.clone(),
+                email,
+                firstname,
+                lastname,
+                email_verified: false,
+                enabled: true,
+                client_id: None,
+            })
+            .await
+            .map_err(|e| {
+                error!("Failed to create anonymous user: {}", e);
+                ApiError::InternalServerError("用户初始化失败".to_string())
+            })?;
+
+        // 2.3 Create device profile
+        let device_profile = DeviceProfile::new(
+            realm.id,
+            device_id.to_string(),
+            user.id,
+            Some(admin_user_id),
+        );
+
+        state
+            .device_profile_repository
+            .create(device_profile)
+            .await
+            .map_err(|e| {
+                error!("Failed to create device profile: {}", e);
+                ApiError::InternalServerError("用户初始化失败".to_string())
+            })?
+    };
+
+    // 3. Get user from device profile
+    let user = state
+        .user_repository
+        .get_by_id(device_profile.user_id)
+        .await
+        .map_err(|e| {
+            error!("Failed to get user: {}", e);
+            ApiError::InternalServerError("用户初始化失败".to_string())
+        })?;
+
+    // 4. Create Identity
+    Ok(Identity::User(user))
+}
+
+/// Custom extractor for required Identity
+/// Supports both Bearer token and X-Device-Id authentication
+/// Priority: Bearer token > X-Device-Id
+pub struct RequiredIdentity(pub Identity);
+
+impl<S> FromRequestParts<S> for RequiredIdentity
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        // 1. First, check if Identity already exists (from Bearer token)
+        if let Some(identity) = parts.extensions.get::<Identity>().cloned() {
+            return Ok(RequiredIdentity(identity));
+        }
+
+        // 2. If no Identity, try to get from X-Device-Id
+        let device_id = parts
+            .headers
+            .get("x-device-id")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.to_string());
+
+        let device_id = match device_id {
+            Some(id) if !id.is_empty() => id,
+            _ => {
+                return Err(ApiError::Unauthorized(
+                    "Authentication required: provide either Authorization header or X-Device-Id header".to_string(),
+                ));
+            }
+        };
+
+        // 3. Extract realm_name from path
+        let realm_name = extract_realm_from_path(parts.uri.path()).ok_or_else(|| {
+            ApiError::BadRequest("Invalid path: realm_name not found in path".to_string())
+        })?;
+
+        // 4. Get AppState
+        let app_state = AppState::from_ref(state);
+
+        // 5. Create Identity from device_id
+        let identity = create_identity_from_device(&app_state, &device_id, &realm_name).await?;
+
+        // 6. Store Identity in extensions for future use
+        parts.extensions.insert(identity.clone());
+
+        Ok(RequiredIdentity(identity))
+    }
 }

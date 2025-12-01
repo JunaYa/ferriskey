@@ -93,9 +93,6 @@ pub async fn analyze_food_image(
         }
     }
 
-    let prompt_id =
-        prompt_id.ok_or_else(|| ApiError::BadRequest("Missing prompt_id field".to_string()))?;
-
     let image_data =
         image_data.ok_or_else(|| ApiError::BadRequest("Missing image field".to_string()))?;
 

@@ -5,7 +5,7 @@ use validator::Validate;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct AnalyzeFoodTextRequest {
-    pub prompt_id: Uuid,
+    pub prompt_id: Option<Uuid>,
     #[validate(length(
         min = 1,
         max = 5000,

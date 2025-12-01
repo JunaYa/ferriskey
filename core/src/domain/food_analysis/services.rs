@@ -79,19 +79,54 @@ where
         )?;
 
         // 3. Get and validate prompt
-        let prompt = self
-            .prompt_repository
-            .get_prompt_by_id(input.prompt_id, realm.id)
-            .await?
-            .ok_or(CoreError::NotFound)?;
+        let prompt = if let Some(prompt_id) = input.prompt_id {
+            // If prompt_id is provided, get the specific prompt
+            let prompt = self
+                .prompt_repository
+                .get_prompt_by_id(prompt_id, realm.id)
+                .await?
+                .ok_or(CoreError::NotFound)?;
 
-        if prompt.realm_id != realm.id {
-            return Err(CoreError::InvalidRealm);
-        }
+            if prompt.realm_id != realm.id {
+                return Err(CoreError::InvalidRealm);
+            }
 
-        if !prompt.is_active || prompt.is_deleted {
-            return Err(CoreError::Invalid);
-        }
+            if !prompt.is_active || prompt.is_deleted {
+                return Err(CoreError::Invalid);
+            }
+
+            prompt
+        } else {
+            // If prompt_id is None, get the first active prompt
+            use crate::domain::prompt::value_objects::GetPromptsFilter;
+            let filter = GetPromptsFilter {
+                realm_name: input.realm_name.clone(),
+                name: None,
+                description: None,
+                include_deleted: false,
+                limit: None,
+                offset: None,
+            };
+
+            let prompts = self
+                .prompt_repository
+                .fetch_prompts_by_realm(realm.id, filter)
+                .await?;
+
+            // Filter active prompts and sort by updated_at descending
+            let mut active_prompts: Vec<_> = prompts
+                .into_iter()
+                .filter(|p| p.is_active && !p.is_deleted && p.realm_id == realm.id)
+                .collect();
+
+            // Sort by updated_at descending
+            active_prompts.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+
+            active_prompts
+                .into_iter()
+                .next()
+                .ok_or(CoreError::NotFound)?
+        };
 
         // 4. Build prompt template
         let input_content = match input.input_type {

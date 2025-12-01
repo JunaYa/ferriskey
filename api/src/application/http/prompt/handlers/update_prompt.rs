@@ -1,12 +1,9 @@
+use crate::application::auth::RequiredIdentity;
 use crate::application::http::prompt::validators::UpdatePromptValidator;
 use crate::application::http::server::api_entities::api_error::{ApiError, ValidateJson};
 use crate::application::http::server::api_entities::response::Response;
 use crate::application::http::server::app_state::AppState;
-use axum::{
-    Extension,
-    extract::{Path, State},
-};
-use ferriskey_core::domain::authentication::value_objects::Identity;
+use axum::extract::{Path, State};
 use ferriskey_core::domain::prompt::entities::prompt::Prompt;
 use ferriskey_core::domain::prompt::ports::PromptService;
 use ferriskey_core::domain::prompt::value_objects::UpdatePromptInput;
@@ -38,7 +35,7 @@ pub async fn update_prompt(
     Path(realm_name): Path<String>,
     Path(prompt_id): Path<Uuid>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    RequiredIdentity(identity): RequiredIdentity,
     ValidateJson(payload): ValidateJson<UpdatePromptValidator>,
 ) -> Result<Response<UpdatePromptResponse>, ApiError> {
     let prompt = state

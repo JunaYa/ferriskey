@@ -1,11 +1,8 @@
+use crate::application::auth::RequiredIdentity;
 use crate::application::http::server::api_entities::api_error::ApiError;
 use crate::application::http::server::api_entities::response::Response;
 use crate::application::http::server::app_state::AppState;
-use axum::{
-    Extension,
-    extract::{Path, Query, State},
-};
-use ferriskey_core::domain::authentication::value_objects::Identity;
+use axum::extract::{Path, Query, State};
 use ferriskey_core::domain::prompt::entities::prompt::Prompt;
 use ferriskey_core::domain::prompt::ports::PromptService;
 use ferriskey_core::domain::prompt::value_objects::GetPromptsFilter;
@@ -50,7 +47,7 @@ pub async fn get_prompts(
     Path(realm_name): Path<String>,
     Query(query): Query<GetPromptsQuery>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    RequiredIdentity(identity): RequiredIdentity,
 ) -> Result<Response<GetPromptsResponse>, ApiError> {
     let prompts = state
         .service
