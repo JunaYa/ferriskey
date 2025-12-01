@@ -4,6 +4,7 @@ use axum::{
 };
 
 use crate::application::{
+    auth::RequiredIdentity,
     device_middleware::DeviceContext,
     http::server::{
         api_entities::{api_error::ApiError, response::Response},
@@ -11,7 +12,6 @@ use crate::application::{
     },
 };
 use ferriskey_core::domain::{
-    authentication::value_objects::Identity,
     food_stats::{ports::FoodStatsRepository, value_objects::OverviewStats},
     realm::ports::{GetRealmInput, RealmService},
 };
@@ -45,7 +45,7 @@ impl From<OverviewStats> for GetOverviewResponse {
 
 #[utoipa::path(
     get,
-    path = "/food-stats/overview",
+    path = "/overview",
     tag = "food-stats",
     summary = "Get food stats overview",
     description = "Get personal trigger statistics overview including accuracy level, tracked reactions, and trigger categories",
@@ -59,7 +59,7 @@ impl From<OverviewStats> for GetOverviewResponse {
 pub async fn get_overview(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    RequiredIdentity(identity): RequiredIdentity,
     Extension(device_context): Extension<DeviceContext>,
 ) -> Result<Response<GetOverviewResponse>, ApiError> {
     // Get realm

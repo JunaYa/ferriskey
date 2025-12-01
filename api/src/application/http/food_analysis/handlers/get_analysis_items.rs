@@ -40,6 +40,19 @@ pub struct GetAnalysisItemsResponse {
     description = "Get list of food analysis items across all requests with filtering, sorting, and pagination",
     params(
         ("realm_name" = String, Path, description = "Realm name"),
+        ("offset" = i64, Query, description = "Offset"),
+        ("limit" = i64, Query, description = "Limit"),
+        ("filter[risk_band]" = String, Query, description = "Risk band"),
+        ("filter[risk_band][in]" = String, Query, description = "Risk band in"),
+        ("filter[safety_level]" = String, Query, description = "Safety level"),
+        ("filter[request_id]" = Uuid, Query, description = "Request ID"),
+        ("filter[risk_score][gte]" = i32, Query, description = "Risk score greater than or equal to"),
+        ("filter[risk_score][lte]" = i32, Query, description = "Risk score less than or equal to"),
+        ("filter[dish_name][ilike]" = String, Query, description = "Dish name ilike"),
+        ("filter[created_at][gte]" = chrono::DateTime<chrono::Utc>, Query, description = "Created at greater than or equal to"),
+        ("filter[created_at][lte]" = chrono::DateTime<chrono::Utc>, Query, description = "Created at less than or equal to"),
+        ("sort" = String, Query, description = "Sort"),
+        ("include_reaction_info" = bool, Query, description = "Include reaction info"),
     ),
     responses(
         (status = 200, body = GetAnalysisItemsResponse)

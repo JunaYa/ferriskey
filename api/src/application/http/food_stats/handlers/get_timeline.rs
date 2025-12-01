@@ -4,6 +4,7 @@ use axum::{
 };
 
 use crate::application::{
+    auth::RequiredIdentity,
     device_middleware::DeviceContext,
     http::{
         query_extractor::QueryParamsExtractor,
@@ -14,7 +15,6 @@ use crate::application::{
     },
 };
 use ferriskey_core::domain::{
-    authentication::value_objects::Identity,
     food_stats::{
         ports::FoodStatsRepository,
         value_objects::{GetTimelineStatsFilter, TimelineStatsResponse},
@@ -43,7 +43,7 @@ impl From<TimelineStatsResponse> for GetTimelineResponse {
 
 #[utoipa::path(
     get,
-    path = "/food-stats/timeline",
+    path = "/timeline",
     tag = "food-stats",
     summary = "Get timeline statistics",
     description = "Get time series statistics with date range filtering",
@@ -58,7 +58,7 @@ impl From<TimelineStatsResponse> for GetTimelineResponse {
 pub async fn get_timeline(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    RequiredIdentity(identity): RequiredIdentity,
     Extension(device_context): Extension<DeviceContext>,
     QueryParamsExtractor(query_params): QueryParamsExtractor,
 ) -> Result<Response<GetTimelineResponse>, ApiError> {

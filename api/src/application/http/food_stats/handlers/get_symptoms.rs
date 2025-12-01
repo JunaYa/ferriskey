@@ -4,6 +4,7 @@ use axum::{
 };
 
 use crate::application::{
+    auth::RequiredIdentity,
     device_middleware::DeviceContext,
     http::{
         query_extractor::QueryParamsExtractor,
@@ -14,7 +15,6 @@ use crate::application::{
     },
 };
 use ferriskey_core::domain::{
-    authentication::value_objects::Identity,
     food_stats::{
         ports::FoodStatsRepository,
         value_objects::{GetSymptomStatsFilter, SymptomStatsResponse},
@@ -41,7 +41,7 @@ impl From<SymptomStatsResponse> for GetSymptomsResponse {
 
 #[utoipa::path(
     get,
-    path = "/food-stats/symptoms",
+    path = "/symptoms",
     tag = "food-stats",
     summary = "Get symptom statistics",
     description = "Get symptom statistics with filtering and sorting",
@@ -55,7 +55,7 @@ impl From<SymptomStatsResponse> for GetSymptomsResponse {
 pub async fn get_symptoms(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
-    Extension(identity): Extension<Identity>,
+    RequiredIdentity(identity): RequiredIdentity,
     Extension(device_context): Extension<DeviceContext>,
     QueryParamsExtractor(query_params): QueryParamsExtractor,
 ) -> Result<Response<GetSymptomsResponse>, ApiError> {

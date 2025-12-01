@@ -4,6 +4,7 @@ use axum::{
 };
 
 use crate::application::{
+    auth::RequiredIdentity,
     device_middleware::DeviceContext,
     http::{
         query_extractor::QueryParamsExtractor,
@@ -33,7 +34,7 @@ pub struct GetReactionsResponse {
 
 #[utoipa::path(
     get,
-    path = "/food-reactions",
+    path = "",
     tag = "food-reaction",
     summary = "Get food reactions",
     description = "Get list of food reactions with filtering, sorting, and pagination",
@@ -47,6 +48,7 @@ pub struct GetReactionsResponse {
 pub async fn get_reactions(
     Path(realm_name): Path<String>,
     State(state): State<AppState>,
+    RequiredIdentity(_identity): RequiredIdentity,
     Extension(device_context): Extension<DeviceContext>,
     QueryParamsExtractor(query_params): QueryParamsExtractor,
 ) -> Result<Response<GetReactionsResponse>, ApiError> {

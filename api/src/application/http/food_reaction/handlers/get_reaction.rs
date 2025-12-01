@@ -4,6 +4,7 @@ use axum::{
 };
 
 use crate::application::{
+    auth::RequiredIdentity,
     device_middleware::DeviceContext,
     http::server::{
         api_entities::{api_error::ApiError, response::Response},
@@ -55,7 +56,7 @@ impl From<FoodReaction> for GetReactionResponse {
 
 #[utoipa::path(
     get,
-    path = "/food-reactions/{reaction_id}",
+    path = "/{reaction_id}",
     tag = "food-reaction",
     summary = "Get a food reaction",
     description = "Get a single food reaction by ID",
@@ -71,6 +72,7 @@ impl From<FoodReaction> for GetReactionResponse {
 pub async fn get_reaction(
     Path((realm_name, reaction_id)): Path<(String, Uuid)>,
     State(state): State<AppState>,
+    RequiredIdentity(_identity): RequiredIdentity,
     Extension(device_context): Extension<DeviceContext>,
 ) -> Result<Response<GetReactionResponse>, ApiError> {
     // Get realm
