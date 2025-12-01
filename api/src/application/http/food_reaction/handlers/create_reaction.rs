@@ -15,12 +15,61 @@ use ferriskey_core::domain::{
     food_reaction::{entities::FoodReaction, ports::FoodReactionRepository},
     realm::ports::RealmRepository,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use utoipa::ToSchema;
+
+/// Custom deserializer for DateTime that accepts both RFC3339 (with timezone) and ISO 8601 (without timezone, assumed UTC)
+fn deserialize_datetime_utc<'de, D>(
+    deserializer: D,
+) -> Result<chrono::DateTime<chrono::Utc>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+
+    // Try RFC3339 format first (with timezone)
+    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&s) {
+        return Ok(dt.with_timezone(&chrono::Utc));
+    }
+
+    // Try ISO 8601 format without timezone (assume UTC)
+    // Support formats like: "2025-12-02T02:08:23.232027" or "2025-12-02T02:08:23"
+    // Try with microseconds first (up to 9 digits)
+    let formats = [
+        "%Y-%m-%dT%H:%M:%S%.f", // With microseconds: "2025-12-02T02:08:23.232027"
+        "%Y-%m-%dT%H:%M:%S",    // Without microseconds: "2025-12-02T02:08:23"
+    ];
+
+    for format in &formats {
+        if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(&s, format) {
+            return Ok(dt.and_utc());
+        }
+    }
+
+    Err(serde::de::Error::custom(format!(
+        "Invalid datetime format: {}. Expected RFC3339 (e.g., '2025-12-02T02:08:23Z') or ISO 8601 without timezone (e.g., '2025-12-02T02:08:23.232027')",
+        s
+    )))
+}
+
+/// Custom serializer for DateTime that outputs RFC3339 format
+fn serialize_datetime_utc<S>(
+    dt: &chrono::DateTime<chrono::Utc>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&dt.to_rfc3339())
+}
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateReactionRequest {
     pub analysis_item_id: Option<uuid::Uuid>,
+    #[serde(
+        deserialize_with = "deserialize_datetime_utc",
+        serialize_with = "serialize_datetime_utc"
+    )]
     pub eaten_at: chrono::DateTime<chrono::Utc>,
     pub feeling: String,
     pub symptom_onset: String,
