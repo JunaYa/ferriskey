@@ -73,6 +73,7 @@ impl From<&food_analysis_items::Model> for FoodAnalysisItem {
             ibs_concerns: model.ibs_concerns.clone(),
             recommendations: model.recommendations.clone(),
             image_object_key: model.image_object_key.clone(),
+            reaction_info: None,
             created_at: model.created_at.to_utc(),
             updated_at: model.updated_at.to_utc(),
             created_by: model.created_by,

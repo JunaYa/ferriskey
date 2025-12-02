@@ -1,7 +1,7 @@
 use sea_orm::{
     ActiveValue::Set,
-    ColumnTrait, Condition, DatabaseConnection, EntityTrait, Order, QueryFilter, QueryOrder,
-    QuerySelect,
+    ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait, Order, QueryFilter,
+    QueryOrder, QuerySelect, Statement,
     prelude::Expr,
     sea_query::{IntoCondition, extension::postgres::PgExpr},
 };
@@ -12,13 +12,16 @@ use crate::{
     domain::{
         common::entities::app_errors::CoreError,
         food_analysis::{
-            entities::FoodAnalysisItem, ports::FoodAnalysisItemRepository,
+            entities::{FoodAnalysisItem, LatestReaction, ReactionInfo},
+            ports::FoodAnalysisItemRepository,
             value_objects::GetFoodAnalysisItemFilter,
         },
     },
     entity::{
         food_analysis_items::{ActiveModel, Column, Entity},
         food_analysis_requests,
+        food_reaction_symptoms::{Column as SymptomColumn, Entity as SymptomEntity},
+        food_reactions::{Column as ReactionColumn, Entity as ReactionEntity},
     },
 };
 
@@ -30,6 +33,103 @@ pub struct PostgresFoodAnalysisItemRepository {
 impl PostgresFoodAnalysisItemRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+
+    /// Get reaction info for a food analysis item
+    async fn get_reaction_info(
+        &self,
+        item_id: Uuid,
+        realm_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<ReactionInfo>, CoreError> {
+        // Get reaction count
+        let count_stmt = Statement::from_sql_and_values(
+            sea_orm::DatabaseBackend::Postgres,
+            r#"
+            SELECT COUNT(*) as count
+            FROM food_reactions
+            WHERE analysis_item_id = $1
+              AND realm_id = $2
+              AND user_id = $3
+            "#,
+            [item_id.into(), realm_id.into(), user_id.into()],
+        );
+
+        let count_result = self.db.query_one(count_stmt).await.map_err(|e| {
+            error!("Failed to get reaction count: {}", e);
+            CoreError::InternalServerError
+        })?;
+
+        let reaction_count = count_result
+            .and_then(|row| row.try_get::<i64>("", "count").ok())
+            .unwrap_or(0);
+
+        if reaction_count == 0 {
+            return Ok(Some(ReactionInfo {
+                has_reaction: false,
+                reaction_count: 0,
+                latest_reaction: None,
+            }));
+        }
+
+        // Get latest reaction
+        let latest_reaction = ReactionEntity::find()
+            .filter(ReactionColumn::AnalysisItemId.eq(item_id))
+            .filter(ReactionColumn::RealmId.eq(realm_id))
+            .filter(ReactionColumn::UserId.eq(user_id))
+            .order_by_desc(ReactionColumn::CreatedAt)
+            .one(&self.db)
+            .await
+            .map_err(|e| {
+                error!("Failed to get latest reaction: {}", e);
+                CoreError::InternalServerError
+            })?;
+
+        let latest_reaction = if let Some(reaction_model) = latest_reaction {
+            // Load symptoms
+            let symptom_models = SymptomEntity::find()
+                .filter(SymptomColumn::ReactionId.eq(reaction_model.id))
+                .all(&self.db)
+                .await
+                .map_err(|e| {
+                    error!("Failed to load reaction symptoms: {}", e);
+                    CoreError::InternalServerError
+                })?;
+
+            let symptoms: Vec<String> = symptom_models
+                .iter()
+                .map(|s| s.symptom_code.clone())
+                .collect();
+
+            Some(LatestReaction {
+                id: reaction_model.id,
+                eaten_at: reaction_model.eaten_at.to_utc(),
+                feeling: reaction_model.feeling,
+                symptom_onset: reaction_model.symptom_onset,
+                symptoms,
+                created_at: reaction_model.created_at.to_utc(),
+            })
+        } else {
+            None
+        };
+
+        Ok(Some(ReactionInfo {
+            has_reaction: reaction_count > 0,
+            reaction_count,
+            latest_reaction,
+        }))
+    }
+}
+
+impl PostgresFoodAnalysisItemRepository {
+    /// Get reaction info for a food analysis item (public method for handlers)
+    pub async fn get_reaction_info_for_item(
+        &self,
+        item_id: Uuid,
+        realm_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<ReactionInfo>, CoreError> {
+        self.get_reaction_info(item_id, realm_id, user_id).await
     }
 }
 
@@ -249,7 +349,7 @@ impl FoodAnalysisItemRepository for PostgresFoodAnalysisItemRepository {
             query = query.offset(offset as u64);
         }
 
-        let items = query
+        let mut items: Vec<FoodAnalysisItem> = query
             .all(&self.db)
             .await
             .map_err(|e| {
@@ -259,6 +359,17 @@ impl FoodAnalysisItemRepository for PostgresFoodAnalysisItemRepository {
             .iter()
             .map(FoodAnalysisItem::from)
             .collect();
+
+        // Add reaction_info if requested
+        if filter.include_reaction_info {
+            for item in &mut items {
+                if let Ok(Some(reaction_info)) =
+                    self.get_reaction_info(item.id, realm_id, user_id).await
+                {
+                    item.reaction_info = Some(reaction_info);
+                }
+            }
+        }
 
         Ok(items)
     }

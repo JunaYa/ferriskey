@@ -6,6 +6,24 @@ use uuid::Uuid;
 use crate::domain::common::generate_timestamp;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+pub struct LatestReaction {
+    pub id: Uuid,
+    pub eaten_at: DateTime<Utc>,
+    pub feeling: String,       // 'GREAT' | 'OKAY' | 'MILD_ISSUES' | 'BAD'
+    pub symptom_onset: String, // 'LT_1H' | 'H1_3H' | 'H3_6H' | 'NEXT_DAY'
+    pub symptoms: Vec<String>, // Symptom codes
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+pub struct ReactionInfo {
+    pub has_reaction: bool,
+    pub reaction_count: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_reaction: Option<LatestReaction>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct FoodAnalysisItem {
     pub id: Uuid,
     pub realm_id: Uuid,
@@ -22,6 +40,8 @@ pub struct FoodAnalysisItem {
     pub ibs_concerns: Vec<String>,
     pub recommendations: String,
     pub image_object_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reaction_info: Option<ReactionInfo>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub created_by: Uuid,
@@ -84,6 +104,7 @@ impl FoodAnalysisItem {
             ibs_concerns,
             recommendations,
             image_object_key,
+            reaction_info: None,
             created_at: now,
             updated_at: now,
             created_by,

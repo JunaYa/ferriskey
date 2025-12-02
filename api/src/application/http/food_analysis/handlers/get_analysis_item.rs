@@ -41,7 +41,7 @@ pub struct GetAnalysisItemResponse {
 pub async fn get_analysis_item(
     Path((realm_name, item_id)): Path<(String, Uuid)>,
     State(state): State<AppState>,
-    Extension(_device_context): Extension<DeviceContext>, // Required for device middleware
+    Extension(device_context): Extension<DeviceContext>,
 ) -> Result<Response<GetAnalysisItemResponse>, ApiError> {
     // Get realm
     let realm = state
@@ -58,7 +58,7 @@ pub async fn get_analysis_item(
         })?;
 
     // Get item
-    let item = state
+    let mut item = state
         .item_repository
         .get_by_id(item_id, realm.id)
         .await
@@ -67,6 +67,15 @@ pub async fn get_analysis_item(
             ApiError::InternalServerError(format!("Failed to get food analysis item: {}", e))
         })?
         .ok_or_else(|| ApiError::NotFound("Item not found".to_string()))?;
+
+    // Get reaction_info
+    if let Ok(Some(reaction_info)) = state
+        .item_repository
+        .get_reaction_info_for_item(item.id, realm.id, device_context.user_id)
+        .await
+    {
+        item.reaction_info = Some(reaction_info);
+    }
 
     Ok(Response::OK(GetAnalysisItemResponse { item }))
 }
